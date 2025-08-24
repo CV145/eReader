@@ -1,0 +1,43 @@
+ereader-project/
+├── packages/
+│   └── epub-parser/          # Shared parser package
+│       ├── src/
+│       │   ├── index.js
+│       │   ├── EPUBParser.js
+│       │   ├── ZipHandler.js
+│       │   ├── OPFParser.js
+│       │   └── adapters/    # Platform-specific code
+│       │       ├── node.js
+│       │       ├── browser.js
+│       │       └── react-native.js
+│       ├── package.json
+│       └── README.md
+│
+├── apps/
+│   ├── backend/             # Node.js - imports parser
+│   ├── web/                # React - imports parser
+│   └── mobile/             # React Native - imports parser
+│
+└── package.json            # Workspace root
+
+
+Parse on SERVER when:
+
+User uploads a new book to their library
+You need to extract metadata for library display
+You want to pre-process for multiple devices
+You need to validate/sanitize content
+Implementing social features (shared annotations)
+
+Parse on CLIENT when:
+
+User wants to read offline
+Opening a local file (not uploading to library)
+Privacy-conscious users (book never leaves device)
+Quick preview before uploading
+Progressive Web App offline mode
+
+
+Workflow:
+- Claude Opus in web browser for code generation
+- Claude Code to ask questions and explain code and tweak

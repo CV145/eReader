@@ -1,0 +1,21 @@
+What does the parser do?
+- Extracts the raw HTML/XHTML content (contains formatting, links, and images)
+- Extracts structure and metadata like book info, TOC, Chapter HTML, reading order (next/previous navigation),
+and images
+
+The parser doesn't just extract text.
+
+An EPUB is essentially:
+
+  EPUB = ZIP file containing:
+  - HTML/XHTML files - The actual book
+  content (chapters)
+  - CSS files - Styling for the HTML
+  - Images - Cover, illustrations, etc.
+  (PNG, JPG, SVG)
+  - Fonts - Custom typography (optional)
+  - Metadata files - Book info, table of
+  contents, structure
+
+  The parser will exist in a shared folder that both frontends can refer to. The backend may parse too
+  server-side, but I'm not sure I've seen this before usually an epub is parsed offline
