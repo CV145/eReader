@@ -12,6 +12,7 @@ export class OPFParser {
       this.opfDir = opfPath.substring(0, opfPath.lastIndexOf('/')) || '';
     }
   
+    // Returns the book metadata, manifest (all book files), and spine (the reading order)
     async parse() {
       const opfContent = await this.zipHandler.getTextFile(this.opfPath);
       

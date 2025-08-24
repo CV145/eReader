@@ -19,3 +19,7 @@ An EPUB is essentially:
 
   The parser will exist in a shared folder that both frontends can refer to. The backend may parse too
   server-side, but I'm not sure I've seen this before usually an epub is parsed offline
+
+  ---
+
+Pagination and styling - Those are frontend responsibilities. The parser just provides the raw content, and each frontend (React web, React Native) will handle display differently.

@@ -2,6 +2,7 @@
 import { ZipHandler } from './ZipHandler.js';
 import { ContainerParser } from './ContainerParser.js';
 import { OPFParser } from './OPFParser.js';
+import { NavigationParser } from './NavigationParser.js';
 
 export class EPUBParser {
   constructor() {
@@ -12,6 +13,7 @@ export class EPUBParser {
     this.navigation = null;
   }
 
+  // Parses the epub and returns metadata, manifest (list of files), spine, navigation array, a getChapter function that takes an index and calls getChapter(index), and a getChapterByHref(href) function
   async parse(buffer) {
     console.log('Starting EPUB parse...');
     
@@ -30,6 +32,11 @@ export class EPUBParser {
     this.metadata = metadata;
     this.manifest = manifest;
     this.spine = spine;
+
+    // Step 4: Parse navigation
+    const opfDir = opfPath.substring(0, opfPath.lastIndexOf('/'));
+    const navParser = new NavigationParser(this.zipHandler, manifest, opfDir); //Instantiate a new navParser
+    this.navigation = await navParser.parse(); // parse() returns an array of navigation objects with structure. This array may differ between EPUB2 and EPUB3
     
     console.log('✓ EPUB parsing complete!');
     
@@ -37,7 +44,9 @@ export class EPUBParser {
       metadata,
       manifest,
       spine,
-      getChapter: (index) => this.getChapter(index)
+      navigation: this.navigation,
+      getChapter: (index) => this.getChapter(index),
+      getChapterByHref: (href) => this.getChapterByHref(href)
     };
   }
 
@@ -81,6 +90,22 @@ export class EPUBParser {
       content: body.innerHTML,
       styles: this.extractStyles(doc)
     };
+  }
+
+  async getChapterByHref(href) {
+    // Remove fragment if present
+    const cleanHref = href.split('#')[0];
+    
+    // Find in spine
+    const spineIndex = this.spine.findIndex(item => 
+      item.href.split('#')[0] === cleanHref
+    );
+    
+    if (spineIndex === -1) {
+      throw new Error(`Chapter not found: ${href}`);
+    }
+    
+    return this.getChapter(spineIndex);
   }
 
   resolveResourcePath(chapterPath, resourcePath) {

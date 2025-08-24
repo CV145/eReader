@@ -1,0 +1,157 @@
+<!-- test-with-nav.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>EPUB Parser with Navigation</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 0;
+            display: flex;
+            height: 100vh;
+        }
+        .sidebar {
+            width: 300px;
+            background: #f5f5f5;
+            padding: 20px;
+            overflow-y: auto;
+            border-right: 1px solid #ddd;
+        }
+        .main {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        .nav-item {
+            cursor: pointer;
+            padding: 5px 10px;
+            margin: 2px 0;
+            border-radius: 3px;
+        }
+        .nav-item:hover {
+            background: #e0e0e0;
+        }
+        .nav-item.active {
+            background: #007bff;
+            color: white;
+        }
+        .nav-children {
+            margin-left: 20px;
+        }
+        .metadata {
+            background: #fff;
+            padding: 10px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #007bff;
+        }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <input type="file" id="file-input" accept=".epub">
+        <div id="metadata" class="metadata" style="display:none;"></div>
+        <h3>Table of Contents</h3>
+        <div id="toc"></div>
+    </div>
+    
+    <div class="main">
+        <div id="chapter"></div>
+    </div>
+
+    <script type="module">
+        import { EPUBParser } from './EPUBParser.js';
+        
+        let currentBook = null;
+        let currentHref = null;
+        
+        function renderNavigation(navItems, container) {
+            navItems.forEach(item => {
+                const div = document.createElement('div');
+                div.className = 'nav-item';
+                div.textContent = item.title;
+                div.dataset.href = item.href;
+                
+                div.addEventListener('click', async () => {
+                    // Remove active class from all items
+                    document.querySelectorAll('.nav-item').forEach(el => 
+                        el.classList.remove('active')
+                    );
+                    div.classList.add('active');
+                    
+                    // Load the chapter
+                    if (item.href) {
+                        try {
+                            const chapter = await currentBook.getChapterByHref(item.href);
+                            document.getElementById('chapter').innerHTML = chapter.content;
+                            currentHref = item.href;
+                            
+                            // Scroll to fragment if specified
+                            if (item.fragment) {
+                                setTimeout(() => {
+                                    const element = document.getElementById(item.fragment);
+                                    if (element) element.scrollIntoView();
+                                }, 100);
+                            }
+                        } catch (error) {
+                            console.error('Failed to load chapter:', error);
+                        }
+                    }
+                });
+                
+                container.appendChild(div);
+                
+                // Render children
+                if (item.children && item.children.length > 0) {
+                    const childContainer = document.createElement('div');
+                    childContainer.className = 'nav-children';
+                    container.appendChild(childContainer);
+                    renderNavigation(item.children, childContainer);
+                }
+            });
+        }
+        
+        document.getElementById('file-input').addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            try {
+                const buffer = await file.arrayBuffer();
+                const parser = new EPUBParser();
+                currentBook = await parser.parse(buffer);
+                
+                // Display metadata
+                const metadataDiv = document.getElementById('metadata');
+                metadataDiv.innerHTML = `
+                    <strong>${currentBook.metadata.title}</strong><br>
+                    <small>by ${currentBook.metadata.creator}</small>
+                `;
+                metadataDiv.style.display = 'block';
+                
+                // Display navigation
+                const tocDiv = document.getElementById('toc');
+                tocDiv.innerHTML = '';
+                
+                if (currentBook.navigation && currentBook.navigation.length > 0) {
+                    renderNavigation(currentBook.navigation, tocDiv);
+                    
+                    // Auto-load first item
+                    const firstItem = tocDiv.querySelector('.nav-item');
+                    if (firstItem) firstItem.click();
+                } else {
+                    tocDiv.innerHTML = '<p>No table of contents found</p>';
+                    
+                    // Load first chapter from spine
+                    if (currentBook.spine.length > 0) {
+                        const chapter = await currentBook.getChapter(0);
+                        document.getElementById('chapter').innerHTML = chapter.content;
+                    }
+                }
+                
+            } catch (error) {
+                console.error(error);
+                alert(`Error: ${error.message}`);
+            }
+        });
+    </script>
+</body>
+</html>

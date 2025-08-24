@@ -1,6 +1,6 @@
 //EPUBs are zip files, so we need to unzip them first. That's what the ZipHandler does
 
-import JSZip from 'jszip';
+import JSZip from 'https://cdn.skypack.dev/jszip@3.10.1';
 
 export class ZipHandler {
   constructor() {
