@@ -23,3 +23,90 @@ An EPUB is essentially:
   ---
 
 Pagination and styling - Those are frontend responsibilities. The parser just provides the raw content, and each frontend (React web, React Native) will handle display differently.
+
+---
+
+EPUBs can include CSS in three ways:
+- External CSS files - Separate .css files in the EPUB
+- Inline <style> tags - Inside each XHTML chapter (you're already getting these)
+- <link> tags - Chapters linking to CSS files
+
+<!-- In the OPF manifest -->
+<manifest>
+  <item id="style1" href="styles/main.css" media-type="text/css"/>
+  <item id="style2" href="styles/typography.css" media-type="text/css"/>
+  <item id="chapter1" href="text/chapter1.xhtml" media-type="application/xhtml+xml"/>
+</manifest>
+
+<!-- In chapter1.xhtml -->
+<html>
+<head>
+  <link rel="stylesheet" type="text/css" href="../styles/main.css"/>
+  <link rel="stylesheet" type="text/css" href="../styles/typography.css"/>
+</head>
+<body>
+  <h1 class="chapter-title">Chapter 1</h1>
+  <p class="first-paragraph">It was a dark and stormy night...</p>
+</body>
+</html>
+
+/* In styles/main.css */
+.chapter-title {
+  font-family: 'Garamond', serif;
+  font-size: 2em;
+  text-align: center;
+  margin-bottom: 2em;
+}
+
+.first-paragraph {
+  text-indent: 0;
+}
+
+.first-paragraph::first-letter {
+  font-size: 3em;
+  float: left;
+  line-height: 1;
+  margin-right: 0.1em;
+}
+
+p {
+  text-indent: 1.5em;
+  line-height: 1.6;
+}
+
+---
+
+Why EPUBs Embed Fonts:
+Typography Control - Publishers want their carefully chosen fonts
+Special Characters - Math books need symbol fonts, language books need special scripts
+Brand Consistency - Publishers like Penguin or O'Reilly have signature fonts
+Reading Experience - Some fonts are specifically designed for digital reading
+
+<!-- In the OPF manifest -->
+<manifest>
+  <item id="font1" href="fonts/Garamond.otf" media-type="font/otf"/>
+  <item id="font2" href="fonts/Merriweather-Regular.ttf" media-type="font/ttf"/>
+  <item id="font3" href="fonts/SpecialSymbols.woff" media-type="font/woff"/>
+  <item id="css1" href="styles/typography.css" media-type="text/css"/>
+</manifest>
+
+/* In typography.css */
+@font-face {
+  font-family: 'Garamond';
+  src: url('../fonts/Garamond.otf') format('opentype');
+  font-weight: normal;
+  font-style: normal;
+}
+
+@font-face {
+  font-family: 'Merriweather';
+  src: url('../fonts/Merriweather-Regular.ttf') format('truetype');
+}
+
+body {
+  font-family: 'Merriweather', serif;
+}
+
+h1, h2, h3 {
+  font-family: 'Garamond', serif;
+}

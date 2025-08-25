@@ -1,102 +1,472 @@
-<!-- test-with-nav.html -->
+<!-- test-with-css.html -->
 <!DOCTYPE html>
 <html>
 <head>
-    <title>EPUB Parser with Navigation</title>
+    <title>EPUB Parser - CSS Support Test</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
+        * {
             margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
             display: flex;
             height: 100vh;
+            background: #f0f0f0;
         }
+        
+        /* Sidebar */
         .sidebar {
-            width: 300px;
-            background: #f5f5f5;
-            padding: 20px;
-            overflow-y: auto;
-            border-right: 1px solid #ddd;
+            width: 320px;
+            background: white;
+            box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
         }
-        .main {
+        
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        
+        .file-input-wrapper {
+            margin-bottom: 15px;
+        }
+        
+        .file-input {
+            width: 100%;
+            padding: 10px;
+            border: 2px dashed #007bff;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        
+        .metadata {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+        }
+        
+        .metadata h3 {
+            color: #333;
+            margin-bottom: 5px;
+            font-size: 18px;
+        }
+        
+        .metadata p {
+            color: #666;
+            font-size: 14px;
+            margin: 3px 0;
+        }
+        
+        /* CSS Info Panel */
+        .css-info {
+            background: #fff3cd;
+            border: 1px solid #ffc107;
+            border-radius: 5px;
+            padding: 10px;
+            margin-bottom: 15px;
+            font-size: 12px;
+        }
+        
+        .css-info h4 {
+            color: #856404;
+            margin-bottom: 5px;
+        }
+        
+        .css-file-list {
+            max-height: 100px;
+            overflow-y: auto;
+            background: white;
+            border-radius: 3px;
+            padding: 5px;
+            margin-top: 5px;
+        }
+        
+        .css-file-item {
+            padding: 2px 5px;
+            border-left: 3px solid #ffc107;
+            margin: 2px 0;
+            font-family: monospace;
+            font-size: 11px;
+        }
+        
+        /* Navigation */
+        .navigation {
             flex: 1;
-            padding: 20px;
             overflow-y: auto;
+            padding: 20px;
         }
+        
+        .navigation h4 {
+            margin-bottom: 10px;
+            color: #333;
+        }
+        
         .nav-item {
             cursor: pointer;
-            padding: 5px 10px;
+            padding: 8px 12px;
             margin: 2px 0;
             border-radius: 3px;
+            transition: all 0.2s;
+            font-size: 14px;
         }
+        
         .nav-item:hover {
-            background: #e0e0e0;
+            background: #e3f2fd;
+            transform: translateX(3px);
         }
+        
         .nav-item.active {
             background: #007bff;
             color: white;
         }
+        
         .nav-children {
             margin-left: 20px;
+            border-left: 2px solid #e0e0e0;
+            margin-top: 5px;
         }
-        .metadata {
-            background: #fff;
-            padding: 10px;
-            margin-bottom: 20px;
-            border-bottom: 2px solid #007bff;
+        
+        /* Main content area */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: white;
+            margin: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .content-header {
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .content-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        
+        .control-btn {
+            padding: 8px 15px;
+            background: rgba(255,255,255,0.2);
+            border: 1px solid rgba(255,255,255,0.3);
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .control-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .css-toggle {
+            margin-left: auto;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 24px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 12px;
+            cursor: pointer;
+        }
+        
+        .toggle-switch.active {
+            background: #4caf50;
+        }
+        
+        .toggle-slider {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            width: 20px;
+            height: 20px;
+            background: white;
+            border-radius: 50%;
+            transition: transform 0.2s;
+        }
+        
+        .toggle-switch.active .toggle-slider {
+            transform: translateX(26px);
+        }
+        
+        /* Chapter content */
+        .chapter-wrapper {
+            flex: 1;
+            overflow-y: auto;
+            padding: 40px;
+            background: white;
+        }
+        
+        .chapter-content {
+            max-width: 800px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+        
+        /* Loading and error states */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #666;
+        }
+        
+        .error {
+            color: #dc3545;
+            padding: 20px;
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            margin: 20px;
+        }
+        
+        /* Style preview modal */
+        .css-preview {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+            max-width: 80%;
+            max-height: 80%;
+            overflow: auto;
+            z-index: 1000;
+            display: none;
+        }
+        
+        .css-preview.show {
+            display: block;
+        }
+        
+        .css-preview pre {
+            background: #f4f4f4;
+            padding: 15px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+        
+        .overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 999;
+            display: none;
+        }
+        
+        .overlay.show {
+            display: block;
         }
     </style>
 </head>
 <body>
     <div class="sidebar">
-        <input type="file" id="file-input" accept=".epub">
-        <div id="metadata" class="metadata" style="display:none;"></div>
-        <h3>Table of Contents</h3>
-        <div id="toc"></div>
+        <div class="sidebar-header">
+            <div class="file-input-wrapper">
+                <input type="file" id="file-input" accept=".epub" class="file-input">
+            </div>
+            
+            <div id="metadata" class="metadata" style="display:none;"></div>
+            <div id="css-info" class="css-info" style="display:none;"></div>
+        </div>
+        
+        <div class="navigation">
+            <h4>Table of Contents</h4>
+            <div id="toc"></div>
+        </div>
     </div>
     
     <div class="main">
-        <div id="chapter"></div>
+        <div class="content-header" id="content-header" style="display:none;">
+            <div class="content-controls">
+                <button class="control-btn" id="prev-btn">← Previous</button>
+                <span id="chapter-info">Chapter 1 of 1</span>
+                <button class="control-btn" id="next-btn">Next →</button>
+                
+                <div class="css-toggle">
+                    <label style="font-size: 14px;">EPUB Styles:</label>
+                    <div class="toggle-switch active" id="css-toggle">
+                        <div class="toggle-slider"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chapter-wrapper">
+            <div id="chapter-content" class="chapter-content">
+                <div class="loading">
+                    <p>📚 Select an EPUB file to start reading</p>
+                </div>
+            </div>
+        </div>
     </div>
+    
+    <!-- CSS Preview Modal -->
+    <div class="overlay" id="overlay"></div>
+    <div class="css-preview" id="css-preview">
+        <h3>CSS Styles for Current Chapter</h3>
+        <pre id="css-code"></pre>
+        <button onclick="closeCSSPreview()">Close</button>
+    </div>
+
+    <!-- EPUB Styles will be injected here -->
+    <style id="epub-styles"></style>
 
     <script type="module">
         import { EPUBParser } from './EPUBParser.js';
         
         let currentBook = null;
-        let currentHref = null;
+        let currentChapterIndex = 0;
+        let cssEnabled = true;
+        let currentChapterData = null;
+        
+        // Initialize CSS toggle
+        const cssToggle = document.getElementById('css-toggle');
+        cssToggle.addEventListener('click', () => {
+            cssEnabled = !cssEnabled;
+            cssToggle.classList.toggle('active', cssEnabled);
+            applyChapterStyles();
+        });
+        
+        function applyChapterStyles() {
+            const styleElement = document.getElementById('epub-styles');
+            
+            if (cssEnabled && currentChapterData && currentChapterData.combinedCSS) {
+                // Scope all CSS to .chapter-content to prevent it affecting our UI
+                const scopedCSS = currentChapterData.combinedCSS
+                    .split('\n')
+                    .map(line => {
+                        // Basic scoping - this is simplified, a real implementation would be more robust
+                        if (line.includes('{') && !line.trim().startsWith('@')) {
+                            return '.chapter-content ' + line;
+                        }
+                        return line;
+                    })
+                    .join('\n');
+                
+                styleElement.textContent = scopedCSS;
+            } else {
+                styleElement.textContent = '';
+            }
+        }
+        
+        async function displayChapter(index) {
+            if (!currentBook) return;
+            
+            try {
+                const chapter = await currentBook.getChapter(index);
+                currentChapterData = chapter;
+                
+                // Update content
+                document.getElementById('chapter-content').innerHTML = chapter.content;
+                
+                // Apply styles
+                applyChapterStyles();
+                
+                // Update UI
+                currentChapterIndex = index;
+                document.getElementById('chapter-info').textContent = 
+                    `Chapter ${index + 1} of ${currentBook.spine.length}`;
+                
+                // Update button states
+                document.getElementById('prev-btn').disabled = index === 0;
+                document.getElementById('next-btn').disabled = index === currentBook.spine.length - 1;
+                
+                // Update CSS info for this chapter
+                if (chapter.css && chapter.css.length > 0) {
+                    const cssInfoDiv = document.getElementById('css-info');
+                    const externalStyles = chapter.css.filter(c => c.type === 'external');
+                    const inlineStyles = chapter.css.filter(c => c.type === 'inline');
+                    
+                    let cssInfoHTML = '<h4>📝 Chapter Styles:</h4>';
+                    
+                    if (externalStyles.length > 0) {
+                        cssInfoHTML += `<div>External CSS files: ${externalStyles.length}</div>`;
+                        cssInfoHTML += '<div class="css-file-list">';
+                        externalStyles.forEach(style => {
+                            cssInfoHTML += `<div class="css-file-item">${style.href}</div>`;
+                        });
+                        cssInfoHTML += '</div>';
+                    }
+                    
+                    if (inlineStyles.length > 0) {
+                        cssInfoHTML += `<div>Inline styles: ${inlineStyles.length} block(s)</div>`;
+                    }
+
+                    if (currentBook.fonts && currentBook.fonts.length > 0) {
+        cssInfoHTML += `<div style="margin-top: 5px; color: #1976d2;">
+            🔤 Using ${currentBook.fonts.length} embedded font(s)
+        </div>`;
+    }
+                    
+                    const totalCSS = chapter.combinedCSS ? chapter.combinedCSS.length : 0;
+                    cssInfoHTML += `<div style="margin-top: 5px;">Total CSS size: ${(totalCSS / 1024).toFixed(1)} KB</div>`;
+                    
+                    cssInfoDiv.innerHTML = cssInfoHTML;
+                }
+                
+                // Highlight active TOC item
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                    if (item.dataset.spineIndex == index) {
+                        item.classList.add('active');
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Failed to load chapter:', error);
+                document.getElementById('chapter-content').innerHTML = 
+                    `<div class="error">Failed to load chapter: ${error.message}</div>`;
+            }
+        }
         
         function renderNavigation(navItems, container) {
             navItems.forEach(item => {
                 const div = document.createElement('div');
                 div.className = 'nav-item';
                 div.textContent = item.title;
-                div.dataset.href = item.href;
                 
-                div.addEventListener('click', async () => {
-                    // Remove active class from all items
-                    document.querySelectorAll('.nav-item').forEach(el => 
-                        el.classList.remove('active')
+                // Find spine index for this nav item
+                if (item.href && currentBook) {
+                    const spineIndex = currentBook.spine.findIndex(
+                        spineItem => spineItem.href.split('#')[0] === item.href.split('#')[0]
                     );
-                    div.classList.add('active');
                     
-                    // Load the chapter
-                    if (item.href) {
-                        try {
-                            const chapter = await currentBook.getChapterByHref(item.href);
-                            document.getElementById('chapter').innerHTML = chapter.content;
-                            currentHref = item.href;
-                            
-                            // Scroll to fragment if specified
-                            if (item.fragment) {
-                                setTimeout(() => {
-                                    const element = document.getElementById(item.fragment);
-                                    if (element) element.scrollIntoView();
-                                }, 100);
-                            }
-                        } catch (error) {
-                            console.error('Failed to load chapter:', error);
-                        }
+                    if (spineIndex !== -1) {
+                        div.dataset.spineIndex = spineIndex;
+                        
+                        div.addEventListener('click', () => {
+                            displayChapter(spineIndex);
+                        });
                     }
-                });
+                }
                 
                 container.appendChild(div);
                 
@@ -110,22 +480,70 @@
             });
         }
         
+        // File input handler
         document.getElementById('file-input').addEventListener('change', async (e) => {
             const file = e.target.files[0];
             if (!file) return;
+            
+            // Show loading state
+            document.getElementById('chapter-content').innerHTML = 
+                '<div class="loading">📖 Parsing EPUB...</div>';
             
             try {
                 const buffer = await file.arrayBuffer();
                 const parser = new EPUBParser();
                 currentBook = await parser.parse(buffer);
                 
+                console.log('Parsed book:', currentBook);
+                
                 // Display metadata
                 const metadataDiv = document.getElementById('metadata');
                 metadataDiv.innerHTML = `
-                    <strong>${currentBook.metadata.title}</strong><br>
-                    <small>by ${currentBook.metadata.creator}</small>
+                    <h3>${currentBook.metadata.title}</h3>
+                    <p><strong>Author:</strong> ${currentBook.metadata.creator}</p>
+                    <p><strong>Language:</strong> ${currentBook.metadata.language}</p>
+                    ${currentBook.metadata.publisher ? `<p><strong>Publisher:</strong> ${currentBook.metadata.publisher}</p>` : ''}
                 `;
                 metadataDiv.style.display = 'block';
+
+                //Display font information
+                if (currentBook.fonts && currentBook.fonts.length > 0) {
+                    const fontInfoHTML = `
+                        <div style="background: #e3f2fd; padding: 10px; margin-top: 10px; border-radius: 5px; border: 1px solid #90caf9;">
+                            <h4 style="margin: 0 0 8px 0; color: #1976d2; font-size: 14px;">
+                                📝 Embedded Fonts: ${currentBook.fonts.length}
+                            </h4>
+                            <div style="font-size: 12px; color: #555;">
+                                ${currentBook.fonts.map(font => 
+                                    `<div style="padding: 2px 0; font-family: monospace;">
+                                        • ${font.fileName}
+                                    </div>`
+                                ).join('')}
+                            </div>
+                        </div>
+                    `;
+                    
+                    // Append to existing metadata
+                    metadataDiv.innerHTML += fontInfoHTML;
+                }
+                
+                // Display global CSS info
+                if (currentBook.globalCSS && currentBook.globalCSS.length > 0) {
+                    const cssInfoDiv = document.getElementById('css-info');
+                    cssInfoDiv.innerHTML = `
+                        <h4>📚 Book Styles:</h4>
+                        <div>Global CSS files: ${currentBook.globalCSS.length}</div>
+                        <div class="css-file-list">
+                            ${currentBook.globalCSS.map(css => 
+                                `<div class="css-file-item">${css.href}</div>`
+                            ).join('')}
+                        </div>
+                    `;
+                    cssInfoDiv.style.display = 'block';
+                }
+                
+                // Show content header
+                document.getElementById('content-header').style.display = 'block';
                 
                 // Display navigation
                 const tocDiv = document.getElementById('toc');
@@ -133,25 +551,63 @@
                 
                 if (currentBook.navigation && currentBook.navigation.length > 0) {
                     renderNavigation(currentBook.navigation, tocDiv);
-                    
-                    // Auto-load first item
-                    const firstItem = tocDiv.querySelector('.nav-item');
-                    if (firstItem) firstItem.click();
                 } else {
-                    tocDiv.innerHTML = '<p>No table of contents found</p>';
-                    
-                    // Load first chapter from spine
-                    if (currentBook.spine.length > 0) {
-                        const chapter = await currentBook.getChapter(0);
-                        document.getElementById('chapter').innerHTML = chapter.content;
-                    }
+                    tocDiv.innerHTML = '<p style="color: #666;">No table of contents found</p>';
                 }
                 
+                // Load first chapter
+                await displayChapter(0);
+                
             } catch (error) {
-                console.error(error);
-                alert(`Error: ${error.message}`);
+                console.error('Failed to parse EPUB:', error);
+                document.getElementById('chapter-content').innerHTML = 
+                    `<div class="error">
+                        <h3>Failed to parse EPUB</h3>
+                        <p>${error.message}</p>
+                        <p style="font-size: 12px; margin-top: 10px;">Check the console for more details.</p>
+                    </div>`;
             }
         });
+        
+        // Navigation buttons
+        document.getElementById('prev-btn').addEventListener('click', () => {
+            if (currentChapterIndex > 0) {
+                displayChapter(currentChapterIndex - 1);
+            }
+        });
+        
+        document.getElementById('next-btn').addEventListener('click', () => {
+            if (currentChapterIndex < currentBook.spine.length - 1) {
+                displayChapter(currentChapterIndex + 1);
+            }
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', (e) => {
+            if (!currentBook) return;
+            
+            if (e.key === 'ArrowLeft') {
+                document.getElementById('prev-btn').click();
+            } else if (e.key === 'ArrowRight') {
+                document.getElementById('next-btn').click();
+            }
+        });
+        
+        // Global functions for CSS preview
+        window.showCSSPreview = () => {
+            if (currentChapterData && currentChapterData.combinedCSS) {
+                document.getElementById('css-code').textContent = currentChapterData.combinedCSS;
+                document.getElementById('css-preview').classList.add('show');
+                document.getElementById('overlay').classList.add('show');
+            }
+        };
+        
+        window.closeCSSPreview = () => {
+            document.getElementById('css-preview').classList.remove('show');
+            document.getElementById('overlay').classList.remove('show');
+        };
+        
+        document.getElementById('overlay').addEventListener('click', window.closeCSSPreview);
     </script>
 </body>
 </html>
