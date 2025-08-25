@@ -7,7 +7,7 @@
   5. Returns all state and functions for component use
 */
 import { useState, useCallback, useRef } from 'react';
-import { EPUBParser } from '../../../shared/parser/src/EPUBParser.js';
+import { EPUBParser } from '../parser/src/EPUBParser.js';
 
 export const useEPUB = () => {
   const [book, setBook] = useState(null); //Parsed EPUB data (metadata, spine, navigation, etc)

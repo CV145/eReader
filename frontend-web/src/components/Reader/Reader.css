@@ -1,4 +1,46 @@
 /* frontend-web/src/components/Reader/Reader.css */
+
+.reader-back-btn {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1001;
+    background: white;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  
+  .reader-back-btn:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    background: #f8f9fa;
+  }
+  
+  .reader-back-btn svg {
+    width: 20px;
+    height: 20px;
+    color: #333;
+  }
+  
+  .theme-dark .reader-back-btn {
+    background: #2a2a2a;
+  }
+  
+  .theme-dark .reader-back-btn svg {
+    color: #e0e0e0;
+  }
+  
+  .theme-dark .reader-back-btn:hover {
+    background: #333;
+  }
+  
 .reader-welcome {
     display: flex;
     align-items: center;

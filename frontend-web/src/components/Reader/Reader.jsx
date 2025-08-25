@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { useEPUB } from '../../hooks/useEPUB';
+import { useEPUB } from '../../../../shared/hooks/useEPUB';
 import Sidebar from '../Sidebar/Sidebar';
 import ChapterView from '../ChapterView/ChapterView';
 import ReadingControls from '../Controls/ReadingControls';
+import { FiArrowLeft } from 'react-icons/fi';
 import './Reader.css';
 
-const Reader = () => {
+const Reader = ({bookData, onProgressUpdate, onBack}) => {
   const {
     book,
     currentChapter,
@@ -26,6 +27,26 @@ const Reader = () => {
   const [fontSize, setFontSize] = useState(16);
   const [theme, setTheme] = useState('light');
 
+  // Load the book when bookData is provided
+  useEffect(() => {
+    if (bookData && bookData.parsedData) {
+      loadFromParsedBook(bookData.parsedData);
+      
+      // Restore reading position if available
+      if (bookData.currentChapter) {
+        loadChapter(bookData.currentChapter);
+      }
+    }
+  }, [bookData]);
+
+  // Update progress when chapter changes
+  useEffect(() => {
+    if (book && currentChapter !== undefined && onProgressUpdate) {
+      const progress = ((currentChapter + 1) / totalChapters) * 100;
+      onProgressUpdate(currentChapter, progress);
+    }
+  }, [currentChapter, book, totalChapters, onProgressUpdate]);
+
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];
     if (file && file.name.endsWith('.epub')) {
@@ -36,20 +57,9 @@ const Reader = () => {
 
   if (!book) {
     return (
-      <div className="reader-welcome">
-        <div className="upload-container">
-          <h1>EPUB Reader</h1>
-          <p>Upload an EPUB file to start reading</p>
-          <label htmlFor="file-input" className="file-input-label">
-            Choose EPUB File
-          </label>
-          <input
-            id="file-input"
-            type="file"
-            accept=".epub"
-            onChange={handleFileUpload}
-            style={{ display: 'none' }}
-          />
+      <div className="reader-container">
+        <div className="reader-loading">
+          <p>Preparing book...</p>
         </div>
       </div>
     );
@@ -57,6 +67,13 @@ const Reader = () => {
 
   return (
     <div className={`reader-container theme-${theme}`}>
+        {/* Back button overlay */}
+      {onBack && (
+        <button className="reader-back-btn" onClick={onBack} title="Back to Library">
+          <FiArrowLeft />
+        </button>
+      )}
+      
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
