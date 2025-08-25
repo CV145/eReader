@@ -1,0 +1,220 @@
+/* frontend-web/src/components/Sidebar/Sidebar.css */
+.sidebar-toggle {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1001;
+    background: white;
+    border: none;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+  
+  .sidebar-toggle:hover {
+    transform: scale(1.05);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+  }
+  
+  .sidebar-toggle svg {
+    width: 20px;
+    height: 20px;
+    color: #333;
+  }
+  
+  .theme-dark .sidebar-toggle {
+    background: #2a2a2a;
+  }
+  
+  .theme-dark .sidebar-toggle svg {
+    color: #e0e0e0;
+  }
+  
+  .sidebar {
+    width: 320px;
+    background: white;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.1);
+    display: flex;
+    flex-direction: column;
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 1000;
+    height: 100vh;
+  }
+  
+  .sidebar:not(.open) {
+    transform: translateX(-100%);
+    position: absolute;
+  }
+  
+  .theme-dark .sidebar {
+    background: #2a2a2a;
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.3);
+  }
+  
+  .sidebar-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid #e0e0e0;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+  }
+  
+  .theme-dark .sidebar-header {
+    border-bottom-color: #444;
+  }
+  
+  .book-info h2 {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+  
+  .book-author {
+    font-size: 0.9rem;
+    opacity: 0.9;
+    margin-bottom: 0.25rem;
+  }
+  
+  .book-publisher {
+    font-size: 0.8rem;
+    opacity: 0.8;
+  }
+  
+  .font-info {
+    margin-top: 1rem;
+  }
+  
+  .info-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 1rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+  }
+  
+  .sidebar-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.5rem 1rem;
+  }
+  
+  .sidebar-content h3 {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+  }
+  
+  .theme-dark .sidebar-content h3 {
+    color: #e0e0e0;
+  }
+  
+  /* Table of Contents Styles */
+  .table-of-contents {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .toc-item-wrapper {
+    width: 100%;
+  }
+  
+  .toc-item {
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+    color: #555;
+    border-left: 3px solid transparent;
+    margin-bottom: 0.25rem;
+  }
+  
+  .theme-dark .toc-item {
+    color: #b0b0b0;
+  }
+  
+  .toc-item:hover {
+    background: #f0f4ff;
+    border-left-color: #667eea;
+    color: #333;
+  }
+  
+  .theme-dark .toc-item:hover {
+    background: #333;
+    color: #e0e0e0;
+  }
+  
+  .toc-item.active {
+    background: linear-gradient(90deg, #667eea15 0%, transparent 100%);
+    border-left-color: #667eea;
+    color: #667eea;
+    font-weight: 500;
+  }
+  
+  .theme-dark .toc-item.active {
+    background: linear-gradient(90deg, #667eea30 0%, transparent 100%);
+    color: #a5b4fc;
+  }
+  
+  .toc-item.level-1 {
+    padding-left: 2rem;
+    font-size: 0.85rem;
+  }
+  
+  .toc-item.level-2 {
+    padding-left: 3rem;
+    font-size: 0.8rem;
+  }
+  
+  .toc-children {
+    margin-left: 0.5rem;
+  }
+  
+  /* Chapter list fallback */
+  .chapter-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+  
+  .chapter-item {
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.9rem;
+  }
+  
+  .theme-dark .chapter-item {
+    background: #333;
+    color: #e0e0e0;
+  }
+  
+  .chapter-item:hover {
+    background: #e9ecef;
+    transform: translateX(4px);
+  }
+  
+  .theme-dark .chapter-item:hover {
+    background: #404040;
+  }
+  
+  .chapter-item.active {
+    background: #667eea;
+    color: white;
+    font-weight: 500;
+  }

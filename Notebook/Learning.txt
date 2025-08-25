@@ -1,0 +1,10 @@
+Any new terms I learn and syntax go here.
+
+UseCallback - what is this?
+- useCallback is a hook that remembers a function so that it 
+doesn't get recreated every time a component re-renders
+
+useMemo
+- A hook that remembers a value from a calculation so it 
+doesn't have to be re-calculated every time a component
+re-renders

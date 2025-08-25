@@ -1,0 +1,70 @@
+/* frontend-web/src/components/Reader/Reader.css */
+.reader-welcome {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  }
+  
+  .upload-container {
+    text-align: center;
+    padding: 3rem;
+    background: white;
+    border-radius: 1rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+    max-width: 400px;
+    width: 90%;
+  }
+  
+  .upload-container h1 {
+    margin-bottom: 1rem;
+    color: #333;
+    font-size: 2rem;
+  }
+  
+  .upload-container p {
+    color: #666;
+    margin-bottom: 2rem;
+  }
+  
+  .file-input-label {
+    display: inline-block;
+    padding: 1rem 2rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  
+  .file-input-label:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+  }
+  
+  .file-input-label:active {
+    transform: translateY(0);
+  }
+  
+  .reader-container {
+    display: flex;
+    height: 100vh;
+    background: #f8f9fa;
+    position: relative;
+  }
+  
+  .reader-container.theme-dark {
+    background: #1a1a1a;
+  }
+  
+  .reader-main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    transition: margin-left 0.3s;
+  }
