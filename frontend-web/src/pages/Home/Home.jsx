@@ -1,4 +1,4 @@
-
+// frontend-web/src/pages/Home/Home.jsx
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLibrary } from '../../../../shared/contexts/LibraryContext';
@@ -6,7 +6,10 @@ import './Home.css';
 
 const Home = () => {
   const navigate = useNavigate();
-  const { books } = useLibrary();
+  const { books, loading } = useLibrary();
+  
+  // Ensure books is an array
+  const booksArray = Array.isArray(books) ? books : [];
 
   return (
     <div className="home-page">
@@ -25,16 +28,16 @@ const Home = () => {
             className="btn-secondary"
             onClick={() => navigate('/library')}
           >
-            View Library ({books.length} books)
+            View Library {!loading && `(${booksArray.length} books)`}
           </button>
         </div>
       </header>
 
-      {books.length > 0 && (
+      {!loading && booksArray.length > 0 && (
         <section className="recent-books">
           <h2>Continue Reading</h2>
           <div className="book-grid">
-            {books
+            {booksArray
               .filter(book => book.lastRead)
               .sort((a, b) => new Date(b.lastRead) - new Date(a.lastRead))
               .slice(0, 3)
@@ -44,12 +47,12 @@ const Home = () => {
                   className="book-card"
                   onClick={() => navigate(`/read/${book.id}`)}
                 >
-                  <h3>{book.metadata.title}</h3>
-                  <p>{book.metadata.creator}</p>
+                  <h3>{book.metadata?.title || 'Untitled'}</h3>
+                  <p>{book.metadata?.creator || 'Unknown Author'}</p>
                   <div className="progress-bar">
                     <div 
                       className="progress-fill"
-                      style={{ width: `${book.progress}%` }}
+                      style={{ width: `${book.progress || 0}%` }}
                     />
                   </div>
                 </div>

@@ -1,15 +1,17 @@
 // frontend-web/src/pages/Reader/Reader.jsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLibrary } from '../../../../shared/contexts/LibraryContext';
+import { EPUBParser } from '../../../../shared/parser/src/EPUBParser';
 import Reader from '../../components/Reader/Reader';
 import './Reader.css';
 
 const ReaderPage = () => {
   const { bookId } = useParams();
   const navigate = useNavigate();
-  const { getBook, updateBookProgress } = useLibrary();
+  const { getBook, getBookFile, updateBookProgress } = useLibrary();
   const [bookData, setBookData] = useState(null);
+  const [parsedBook, setParsedBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -17,8 +19,9 @@ const ReaderPage = () => {
     const loadBook = async () => {
       try {
         setLoading(true);
-        const book = await getBook(bookId);
         
+        // Get book metadata
+        const book = await getBook(bookId);
         if (!book) {
           setError('Book not found');
           setTimeout(() => navigate('/library'), 2000);
@@ -26,6 +29,17 @@ const ReaderPage = () => {
         }
         
         setBookData(book);
+        
+        // Get the file buffer and re-parse it
+        const fileBuffer = await getBookFile(bookId);
+        if (fileBuffer) {
+          const parser = new EPUBParser();
+          const parsed = await parser.parse(fileBuffer);
+          setParsedBook(parsed);
+        } else {
+          setError('Book file not found');
+          setTimeout(() => navigate('/library'), 2000);
+        }
       } catch (err) {
         console.error('Failed to load book:', err);
         setError('Failed to load book');
@@ -36,11 +50,11 @@ const ReaderPage = () => {
     };
     
     loadBook();
-  }, [bookId, getBook, navigate]);
+  }, [bookId, getBook, getBookFile, navigate]);
 
-  const handleProgressUpdate = (chapter, progress) => {
+  const handleProgressUpdate = useCallback((chapter, progress) => {
     updateBookProgress(bookId, chapter, progress);
-  };
+  }, [bookId, updateBookProgress]);
 
   const handleBack = () => {
     navigate('/library');
@@ -64,10 +78,22 @@ const ReaderPage = () => {
     );
   }
 
+  if (!parsedBook) {
+    return (
+      <div className="reader-page-error">
+        <p>Unable to parse book</p>
+        <p>Redirecting to library...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="reader-page">
       <Reader 
-        bookData={bookData}
+        bookData={{
+          ...bookData,
+          parsedData: parsedBook
+        }}
         onProgressUpdate={handleProgressUpdate}
         onBack={handleBack}
       />

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useEPUB } from '../../../../shared/hooks/useEPUB';
 import Sidebar from '../Sidebar/Sidebar';
 import ChapterView from '../ChapterView/ChapterView';
@@ -16,6 +16,7 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
     cssEnabled,
     setCssEnabled,
     loadEPUB,
+    loadParsedBook,
     loadChapter,
     loadChapterByHref,
     nextChapter,
@@ -27,17 +28,20 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
   const [fontSize, setFontSize] = useState(16);
   const [theme, setTheme] = useState('light');
 
+  // Extract the stable ID from the bookData prop
+  const bookId = bookData?.id;
+
   // Load the book when bookData is provided
   useEffect(() => {
-    if (bookData && bookData.parsedData) {
-      loadFromParsedBook(bookData.parsedData);
-      
-      // Restore reading position if available
-      if (bookData.currentChapter) {
-        loadChapter(bookData.currentChapter);
-      }
+    if (bookData && bookData.parsedData && bookId) {
+      loadParsedBook(bookId, bookData.parsedData).then(() => {
+        // Restore reading position if available (.then(), only AFTER the book is loaded)
+        if (bookData.currentChapter) {
+            loadChapter(bookData.currentChapter);
+        }
+      });
     }
-  }, [bookData]);
+  }, [bookData, loadParsedBook, loadChapter]);
 
   // Update progress when chapter changes
   useEffect(() => {
@@ -73,7 +77,7 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
           <FiArrowLeft />
         </button>
       )}
-      
+
       <Sidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}

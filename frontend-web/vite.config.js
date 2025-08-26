@@ -8,6 +8,7 @@ export default defineConfig({
   resolve: {
     alias: {
       '@shared': path.resolve(__dirname, '../shared')
-    }
+    },
+    dedupe: ['react', 'react-dom'],
   }
 })

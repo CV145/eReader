@@ -10,6 +10,7 @@ import { useState, useCallback, useRef } from 'react';
 import { EPUBParser } from '../parser/src/EPUBParser.js';
 
 export const useEPUB = () => {
+  const [bookId, setBookId] = useState(null);
   const [book, setBook] = useState(null); //Parsed EPUB data (metadata, spine, navigation, etc)
   const [currentChapter, setCurrentChapter] = useState(0); //Current chapter index
   const [chapterContent, setChapterContent] = useState(null); //Current chapter's content and CSS
@@ -54,6 +55,35 @@ export const useEPUB = () => {
       setLoading(false);
     }
   }, []);
+
+  //Load a parsed book
+  const loadParsedBook = useCallback(async (newBookId, parsedBook) => {
+    
+    //Prevent re-loading the same book
+    if (!parsedBook || bookId === newBookId)
+    {
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    try {
+      setBookId(newBookId); //Set the ID when a new book is loaded
+      setBook(parsedBook);
+      setCurrentChapter(0);
+      
+      // Load first chapter automatically
+      if (parsedBook.spine && parsedBook.spine.length > 0) {
+        const firstChapter = await parsedBook.getChapter(0);
+        setChapterContent(firstChapter);
+      }
+    } catch (err) {
+      setError(`Failed to load chapter from parsed book: ${err.message}`);
+      console.error('Failed to load parsed book:', err);
+    } finally {
+      setLoading(false);
+    }
+  }, [bookId]); // Reload when bookId changes
 
   /*
   - Loads specific chapter by spine index
@@ -129,6 +159,7 @@ export const useEPUB = () => {
     cssEnabled,
     setCssEnabled,
     loadEPUB,
+    loadParsedBook,
     loadChapter,
     loadChapterByHref,
     nextChapter,

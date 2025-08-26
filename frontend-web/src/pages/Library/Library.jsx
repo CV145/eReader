@@ -7,23 +7,46 @@ import './Library.css';
 
 const Library = () => {
   const navigate = useNavigate();
-  const { books, deleteBook } = useLibrary();
+  const { books, deleteBook, loading } = useLibrary(); // Add loading
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('title');
 
-  const filteredBooks = books.filter(book => 
-    book.metadata.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    book.metadata.creator?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Show loading state
+  if (loading) {
+    return (
+      <div className="library-page">
+        <div className="library-loading">
+          <div className="spinner"></div>
+          <p>Loading your library...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Ensure books is an array before filtering
+  const booksArray = Array.isArray(books) ? books : [];
+  
+  const filteredBooks = booksArray.filter(book => {
+    const title = book.metadata?.title || '';
+    const author = book.metadata?.creator || '';
+    const search = searchTerm.toLowerCase();
+    
+    return title.toLowerCase().includes(search) ||
+           author.toLowerCase().includes(search);
+  });
 
   const sortedBooks = [...filteredBooks].sort((a, b) => {
     switch(sortBy) {
       case 'title':
-        return a.metadata.title.localeCompare(b.metadata.title);
+        const titleA = a.metadata?.title || '';
+        const titleB = b.metadata?.title || '';
+        return titleA.localeCompare(titleB);
       case 'author':
-        return (a.metadata.creator || '').localeCompare(b.metadata.creator || '');
+        const authorA = a.metadata?.creator || '';
+        const authorB = b.metadata?.creator || '';
+        return authorA.localeCompare(authorB);
       case 'recent':
-        return new Date(b.uploadDate) - new Date(a.uploadDate);
+        return new Date(b.uploadDate || 0) - new Date(a.uploadDate || 0);
       default:
         return 0;
     }
@@ -84,8 +107,8 @@ const Library = () => {
               onClick={() => navigate(`/read/${book.id}`)}
             >
               <div className="book-info">
-                <h3>{book.metadata.title}</h3>
-                <p className="author">{book.metadata.creator}</p>
+                <h3>{book.metadata?.title || 'Untitled'}</h3>
+                <p className="author">{book.metadata?.creator || 'Unknown Author'}</p>
                 <p className="meta">
                   {book.spine?.length || 0} chapters • 
                   Added {new Date(book.uploadDate).toLocaleDateString()}
@@ -100,6 +123,7 @@ const Library = () => {
               <button 
                 className="delete-btn"
                 onClick={(e) => handleDelete(e, book.id)}
+                aria-label="Delete book"
               >
                 <FiTrash2 />
               </button>
