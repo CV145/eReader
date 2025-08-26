@@ -41,7 +41,7 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
         }
       });
     }
-  }, [bookData, loadParsedBook, loadChapter]);
+  }, [bookId]);
 
   // Update progress when chapter changes
   useEffect(() => {
@@ -49,7 +49,7 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
       const progress = ((currentChapter + 1) / totalChapters) * 100;
       onProgressUpdate(currentChapter, progress);
     }
-  }, [currentChapter, book, totalChapters, onProgressUpdate]);
+  }, [currentChapter, totalChapters]);
 
   const handleFileUpload = async (event) => {
     const file = event.target.files[0];

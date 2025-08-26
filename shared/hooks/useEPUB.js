@@ -83,7 +83,7 @@ export const useEPUB = () => {
     } finally {
       setLoading(false);
     }
-  }, [bookId]); // Reload when bookId changes
+  }, []); 
 
   /*
   - Loads specific chapter by spine index

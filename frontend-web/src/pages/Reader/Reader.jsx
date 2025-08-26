@@ -1,5 +1,5 @@
 // frontend-web/src/pages/Reader/Reader.jsx
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLibrary } from '../../../../shared/contexts/LibraryContext';
 import { EPUBParser } from '../../../../shared/parser/src/EPUBParser';
@@ -50,7 +50,7 @@ const ReaderPage = () => {
     };
     
     loadBook();
-  }, [bookId, getBook, getBookFile, navigate]);
+  }, [bookId]);
 
   const handleProgressUpdate = useCallback((chapter, progress) => {
     updateBookProgress(bookId, chapter, progress);
@@ -59,6 +59,14 @@ const ReaderPage = () => {
   const handleBack = () => {
     navigate('/library');
   };
+
+  const memoizedBookData = useMemo(() => {
+    if (!bookData || !parsedBook) return null;
+    return {
+      ...bookData,
+      parsedData: parsedBook
+    };
+  }, [bookData, parsedBook]);
 
   if (loading) {
     return (
@@ -90,10 +98,7 @@ const ReaderPage = () => {
   return (
     <div className="reader-page">
       <Reader 
-        bookData={{
-          ...bookData,
-          parsedData: parsedBook
-        }}
+        bookData={memoizedBookData}
         onProgressUpdate={handleProgressUpdate}
         onBack={handleBack}
       />
