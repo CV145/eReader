@@ -1,8 +1,9 @@
 // frontend-web/src/components/Controls/ReadingControls.jsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
-  FiChevronLeft, 
-  FiChevronRight, 
+  FiArrowLeft,
+  FiMenu,
   FiMinus, 
   FiPlus,
   FiSun,
@@ -14,39 +15,46 @@ import './Controls.css';
 const ReadingControls = ({
   currentChapter,
   totalChapters,
-  onPrevious,
-  onNext,
   fontSize,
   onFontSizeChange,
   theme,
   onThemeChange,
   cssEnabled,
-  onCssToggle
+  onCssToggle,
+  onToggleSidebar,
+  sidebarOpen
 }) => {
+  const navigate = useNavigate();
+  
   return (
     <div className="reading-controls">
       <div className="controls-left">
         <button 
-          onClick={onPrevious}
-          disabled={currentChapter === 0}
-          className="control-btn"
-          title="Previous Chapter"
+          onClick={() => navigate('/library')}
+          className="control-btn back-btn"
+          title="Back to Library"
         >
-          <FiChevronLeft />
+          <FiArrowLeft />
+          <span>Back</span>
+        </button>
+        
+        <button 
+          onClick={onToggleSidebar}
+          className="control-btn sidebar-toggle-btn"
+          title="Toggle Sidebar"
+        >
+          <FiMenu />
         </button>
         
         <span className="chapter-indicator">
-          Chapter {currentChapter + 1} of {totalChapters}
+          Chapter <span>{currentChapter + 1}</span> of {totalChapters}
         </span>
-        
-        <button 
-          onClick={onNext}
-          disabled={currentChapter === totalChapters - 1}
-          className="control-btn"
-          title="Next Chapter"
-        >
-          <FiChevronRight />
-        </button>
+      </div>
+      
+      <div className="controls-center">
+        <div className="keyboard-hint">
+          Use ← → arrows or Space to navigate
+        </div>
       </div>
       
       <div className="controls-right">

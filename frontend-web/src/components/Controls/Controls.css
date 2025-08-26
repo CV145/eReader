@@ -1,198 +1,314 @@
-/* frontend-web/src/components/Controls/Controls.css */
+/* Reading Controls - Professional Control Bar */
+
 .reading-controls {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 2rem;
-    background: white;
-    border-bottom: 1px solid #e0e0e0;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-    min-height: 60px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md) var(--space-xl);
+  background: var(--bg-card);
+  border-bottom: 1px solid var(--border-light);
+  box-shadow: var(--shadow-sm);
+  min-height: 60px;
+  position: relative;
+  z-index: 1000;  /* High z-index for top bar */
+}
+
+.controls-left,
+.controls-right {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+}
+
+.controls-center {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  flex: 1;
+  justify-content: center;
+}
+
+/* Keyboard hint */
+.keyboard-hint {
+  padding: var(--space-xs) var(--space-md);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  font-weight: 500;
+  opacity: 0.7;
+  transition: opacity var(--transition-fast);
+}
+
+.keyboard-hint:hover {
+  opacity: 1;
+}
+
+/* Control Buttons */
+.control-btn {
+  padding: var(--space-sm) var(--space-md);
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.control-btn:hover:not(:disabled) {
+  background: var(--bg-secondary);
+  border-color: var(--primary-color);
+  color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.control-btn:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+.control-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.control-btn svg {
+  font-size: 1.1rem;
+}
+
+/* Back button styling */
+.control-btn.back-btn {
+  background: var(--bg-tertiary);
+  padding: var(--space-sm) var(--space-md);
+  min-width: auto;
+}
+
+.control-btn.back-btn:hover {
+  background: var(--error-color);
+  color: white;
+  border-color: var(--error-color);
+}
+
+.control-btn.back-btn span {
+  margin-left: var(--space-xs);
+}
+
+/* Sidebar toggle button */
+.control-btn.sidebar-toggle-btn {
+  background: var(--bg-tertiary);
+  min-width: 40px;
+}
+
+.control-btn.sidebar-toggle-btn:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+}
+
+/* Chapter Indicator */
+.chapter-indicator {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-left: var(--space-sm);
+  text-align: center;
+  border: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.chapter-indicator span {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+/* Font Size Controls */
+.font-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+
+.font-size {
+  min-width: 50px;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--text-primary);
+  font-weight: 600;
+  padding: var(--space-xs) var(--space-sm);
+}
+
+.font-controls .control-btn {
+  padding: var(--space-xs) var(--space-sm);
+  border: none;
+  background: transparent;
+  min-width: 32px;
+  height: 32px;
+}
+
+.font-controls .control-btn:hover {
+  background: var(--bg-primary);
+}
+
+/* Theme Toggle Button */
+.theme-toggle {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.theme-toggle:hover {
+  background: var(--warning-color);
+  color: white;
+  border-color: var(--warning-color);
+}
+
+.theme-toggle svg {
+  transition: transform var(--transition-fast);
+}
+
+.theme-toggle:hover svg {
+  transform: rotate(180deg);
+}
+
+/* CSS Toggle Button */
+.css-toggle {
+  position: relative;
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+}
+
+.css-toggle.active {
+  background: var(--primary-gradient);
+  color: white;
+  border-color: transparent;
+  box-shadow: var(--shadow-md);
+}
+
+.css-toggle.active:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+/* Progress Bar */
+.reading-progress {
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: var(--border-light);
+}
+
+.reading-progress-bar {
+  height: 100%;
+  background: var(--primary-gradient);
+  transition: width var(--transition-base);
+  box-shadow: 0 0 4px rgba(79, 70, 229, 0.4);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .reading-controls {
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) var(--space-md);
+    min-height: auto;
   }
   
-  .theme-dark .reading-controls {
-    background: #2a2a2a;
-    border-bottom-color: #444;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  .controls-left {
+    flex: 1;
+    min-width: auto;
   }
   
-  .controls-left,
+  .controls-center {
+    order: 3;
+    width: 100%;
+    margin-top: var(--space-xs);
+  }
+  
   .controls-right {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
+    flex: auto;
   }
   
-  .control-btn {
-    padding: 0.5rem 1rem;
-    background: white;
-    border: 1px solid #ddd;
-    border-radius: 0.5rem;
-    cursor: pointer;
-    transition: all 0.2s;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.5rem;
-    font-size: 0.9rem;
-    color: #555;
-    font-weight: 500;
-  }
-  
-  .theme-dark .control-btn {
-    background: #333;
-    border-color: #555;
-    color: #e0e0e0;
-  }
-  
-  .control-btn:hover:not(:disabled) {
-    background: #f0f0f0;
-    border-color: #667eea;
-    color: #667eea;
-    transform: translateY(-2px);
-    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
-  }
-  
-  .theme-dark .control-btn:hover:not(:disabled) {
-    background: #404040;
-    border-color: #667eea;
-    color: #a5b4fc;
-  }
-  
-  .control-btn:active:not(:disabled) {
-    transform: translateY(0);
-  }
-  
-  .control-btn:disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-  }
-  
-  .control-btn svg {
-    width: 18px;
-    height: 18px;
+  .keyboard-hint {
+    width: 100%;
+    text-align: center;
+    font-size: 0.7rem;
   }
   
   .chapter-indicator {
-    padding: 0.5rem 1rem;
-    background: #f8f9fa;
-    border-radius: 0.5rem;
-    font-size: 0.9rem;
-    color: #666;
-    font-weight: 500;
-    min-width: 140px;
-    text-align: center;
+    min-width: auto;
+    padding: var(--space-xs) var(--space-sm);
+    margin-left: var(--space-xs);
   }
   
-  .theme-dark .chapter-indicator {
-    background: #333;
-    color: #aaa;
+  .control-btn.back-btn span {
+    display: none;
   }
-  
-  /* Font controls */
+}
+
+@media (max-width: 480px) {
   .font-controls {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.25rem 0.5rem;
-    background: #f8f9fa;
-    border-radius: 0.5rem;
+    flex-direction: row;
+    gap: var(--space-xs);
   }
   
-  .theme-dark .font-controls {
-    background: #333;
+  .control-btn {
+    padding: var(--space-xs) var(--space-sm);
+    font-size: 0.8rem;
   }
   
-  .font-size {
-    min-width: 50px;
-    text-align: center;
-    font-size: 0.85rem;
-    color: #666;
-    font-weight: 500;
+  .control-btn svg {
+    font-size: 1rem;
   }
-  
-  .theme-dark .font-size {
-    color: #aaa;
-  }
-  
-  .font-controls .control-btn {
-    padding: 0.25rem 0.5rem;
-    border: none;
-    background: transparent;
-  }
-  
-  .font-controls .control-btn:hover {
-    background: white;
-  }
-  
-  .theme-dark .font-controls .control-btn:hover {
-    background: #404040;
-  }
-  
-  /* Theme toggle */
-  .theme-toggle {
-    background: #f8f9fa;
-    border: none;
-  }
-  
-  .theme-toggle:hover {
-    background: #ffd700;
-    color: #333;
-    border-color: #ffd700;
-  }
-  
-  .theme-dark .theme-toggle {
-    background: #333;
-  }
-  
-  .theme-dark .theme-toggle:hover {
-    background: #4a4a4a;
-    color: #ffd700;
-  }
-  
-  /* CSS toggle */
-  .css-toggle {
-    position: relative;
-  }
-  
-  .css-toggle.active {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-    color: white;
-    border-color: transparent;
-  }
-  
-  .css-toggle.active:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
-  }
-  
-  /* Responsive design */
-  @media (max-width: 768px) {
-    .reading-controls {
-      flex-direction: column;
-      gap: 1rem;
-      padding: 1rem;
-    }
-  
-    .controls-left,
-    .controls-right {
-      width: 100%;
-      justify-content: center;
-    }
-  
-    .chapter-indicator {
-      min-width: auto;
-    }
-  }
-  
-  @media (max-width: 480px) {
-    .font-controls {
-      flex-direction: column;
-      gap: 0.25rem;
-    }
-  
-    .control-btn {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.85rem;
-    }
-  }
+}
+
+/* Dark Theme Adjustments */
+.theme-dark .reading-controls {
+  background: var(--bg-secondary);
+  border-bottom-color: var(--border-dark);
+}
+
+.theme-dark .control-btn {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+}
+
+.theme-dark .control-btn:hover:not(:disabled) {
+  background: var(--bg-primary);
+  border-color: var(--primary-light);
+  color: var(--primary-light);
+}
+
+.theme-dark .font-controls {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+}
+
+.theme-dark .font-controls .control-btn:hover {
+  background: var(--bg-secondary);
+}
+
+.theme-dark .chapter-indicator {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+}
+
+.theme-dark .theme-toggle:hover {
+  background: var(--warning-color);
+  border-color: var(--warning-color);
+}

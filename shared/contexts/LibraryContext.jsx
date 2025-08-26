@@ -1,12 +1,32 @@
-/*
- LibraryContext.jsx is a React Context that manages the entire book library state and persistence.
-
- It's state management for the book library with IndexedDB storage - books are saved offline and reading progress is tracked.
-
- (Where are books stored?)
-
- Offline local storage on device
-*/
+/**
+ * LibraryContext - Complete Book Library Management System
+ * 
+ * This React Context provides centralized state management for the entire book library,
+ * handling storage, retrieval, and progress tracking using IndexedDB for offline persistence.
+ * 
+ * Key Features:
+ * - Offline book storage using IndexedDB
+ * - Book metadata and file management
+ * - Reading progress tracking per book
+ * - CRUD operations for library management
+ * - Automatic data persistence
+ * 
+ * Storage Architecture:
+ * - IndexedDB Database: 'EPUBLibrary'
+ * - Object Store 'books': Book metadata, progress, reading position
+ * - Object Store 'files': Original EPUB file buffers
+ * 
+ * Data Flow:
+ * 1. User adds EPUB → File parsed → Metadata + buffer stored in IndexedDB
+ * 2. User opens book → Metadata loaded → File buffer retrieved and parsed
+ * 3. User reads → Progress automatically tracked and persisted
+ * 4. User returns → Reading position restored from storage
+ * 
+ * Context Usage:
+ * - Wrap app with LibraryProvider
+ * - Use useLibrary() hook in components
+ * - Access books array, loading state, and CRUD functions
+ */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const LibraryContext = createContext();
@@ -20,9 +40,10 @@ export const useLibrary = () => {
 };
 
 export const LibraryProvider = ({ children }) => {
-  const [books, setBooks] = useState([]); //Array of all books in the library
-  const [currentBook, setCurrentBook] = useState(null); //Currently selected book
-  const [loading, setLoading] = useState(true); //Loading state during database operations
+  // Core library state management
+  const [books, setBooks] = useState([]);              // Array of all books in the library with metadata
+  const [currentBook, setCurrentBook] = useState(null); // Currently selected/opened book
+  const [loading, setLoading] = useState(true);        // Loading state during database operations
 
   useEffect(() => {
     loadBooksFromStorage();
@@ -54,19 +75,35 @@ export const LibraryProvider = ({ children }) => {
     }
   };
 
-  /*
-  - Creates unique book ID
-  - Extracts serializable data from the parsed EPUB (no functions)
-  - Stores book metadata in 'books' objectStore
-  - Stores original EPUB file buffer in 'files' objectStore
-  - Updates React state
-  */
+  /**
+   * Add new book to the library
+   * 
+   * This is the main function for importing EPUB files into the library.
+   * It handles both metadata extraction and file storage in a single transaction.
+   * 
+   * Process:
+   * 1. Generate unique book ID using timestamp
+   * 2. Convert file to ArrayBuffer for storage
+   * 3. Extract serializable data from parsed EPUB (remove functions)
+   * 4. Create book metadata object
+   * 5. Store both metadata and file buffer in IndexedDB
+   * 6. Update React state with new book
+   * 
+   * @param {File} file - Original EPUB file from user
+   * @param {Object} parsedBook - Parsed EPUB data with structure and methods
+   * @returns {Promise<string>} - Book ID of the newly added book
+   * 
+   * Storage Strategy:
+   * - Metadata goes to 'books' store for quick access
+   * - File buffer goes to 'files' store for re-parsing when needed
+   * - Dual storage allows fast library browsing + full functionality when reading
+   */
   const addBook = async (file, parsedBook) => {
-
-    // The unique Book ID
+    // Generate unique book ID using current timestamp
     const bookId = `book_${Date.now()}`;
     
-    // Get the array buffer BEFORE starting the transaction
+    // Convert file to ArrayBuffer BEFORE starting IndexedDB transaction
+    // (IndexedDB transactions can timeout if this takes too long)
     let fileBuffer;
     try {
       fileBuffer = await file.arrayBuffer();
@@ -75,28 +112,30 @@ export const LibraryProvider = ({ children }) => {
       throw new Error('Failed to read file');
     }
     
-    // Extract only serializable data from parsedBook (no functions)
+    // Extract only serializable data from parsedBook
+    // (IndexedDB can't store functions, so we remove methods like getChapter)
     const bookData = {
-      metadata: parsedBook.metadata || {},
-      navigation: parsedBook.navigation || [],
-      spine: parsedBook.spine || [],
-      manifest: parsedBook.manifest || {},
-      fonts: parsedBook.fonts || [],
-      globalCSS: parsedBook.globalCSS || []
+      metadata: parsedBook.metadata || {},    // Title, author, publisher, etc.
+      navigation: parsedBook.navigation || [], // Table of contents structure
+      spine: parsedBook.spine || [],          // Chapter order and files
+      manifest: parsedBook.manifest || {},     // All files in EPUB
+      fonts: parsedBook.fonts || [],          // Embedded fonts
+      globalCSS: parsedBook.globalCSS || []   // Global stylesheets
     };
     
+    // Create complete book metadata object for storage
     const newBook = {
-      id: bookId,
-      fileName: file.name,
-      fileSize: file.size,
-      metadata: bookData.metadata,
-      navigation: bookData.navigation,
-      spine: bookData.spine,
-      uploadDate: new Date().toISOString(),
-      lastRead: null,
-      currentChapter: 0,
-      progress: 0,
-      bookData: bookData
+      id: bookId,                             // Unique identifier
+      fileName: file.name,                    // Original filename
+      fileSize: file.size,                    // File size in bytes
+      metadata: bookData.metadata,            // Book info (title, author, etc.)
+      navigation: bookData.navigation,        // Table of contents
+      spine: bookData.spine,                  // Chapter structure
+      uploadDate: new Date().toISOString(),   // When book was added
+      lastRead: null,                         // Last reading session
+      currentChapter: 0,                      // Reading position
+      progress: 0,                            // Reading progress percentage
+      bookData: bookData                      // Complete parsed structure
     };
 
     try {

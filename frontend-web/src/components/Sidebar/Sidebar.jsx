@@ -1,16 +1,11 @@
 
 import React from 'react';
-import { FiMenu, FiX, FiBook } from 'react-icons/fi';
+import { FiBook } from 'react-icons/fi';
 import TableOfContents from './TableOfContents';
 import './Sidebar.css';
 
-const Sidebar = ({ isOpen, onToggle, book, currentChapter, onNavigate, onChapterSelect }) => {
+const Sidebar = ({ isOpen, book, currentChapter, onNavigate, onChapterSelect }) => {
   return (
-    <>
-      <button className="sidebar-toggle" onClick={onToggle}>
-        {isOpen ? <FiX /> : <FiMenu />}
-      </button>
-      
       <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
         <div className="sidebar-header">
           <div className="book-info">
@@ -57,7 +52,6 @@ const Sidebar = ({ isOpen, onToggle, book, currentChapter, onNavigate, onChapter
           )}
         </div>
       </aside>
-    </>
   );
 };
 
