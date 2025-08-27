@@ -47,7 +47,7 @@ const ReadingControls = ({
         </button>
         
         <span className="chapter-indicator">
-          Chapter <span>{currentChapter + 1}</span> of {totalChapters}
+          Page <span>{currentChapter + 1}</span> of {totalChapters}
         </span>
       </div>
       

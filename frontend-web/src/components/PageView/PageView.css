@@ -1,0 +1,292 @@
+/* PageView Component - Paginated Reading Experience */
+
+.page-view {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-card);
+  position: relative;
+  user-select: text;
+  cursor: default;
+  overflow: hidden;
+}
+
+/* Page Header */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-sm) var(--space-lg);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+  border-bottom: 1px solid var(--border-light);
+  background: var(--bg-tertiary);
+  min-height: 32px;
+}
+
+.chapter-title {
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow: hidden;
+  max-width: 60%;
+}
+
+.page-number {
+  font-weight: 600;
+  color: var(--primary-color);
+}
+
+/* Page Content */
+.page-content {
+  flex: 1;
+  padding: var(--space-xl);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  max-width: 720px;
+  margin: 0 auto;
+  width: 100%;
+}
+
+.page-text {
+  color: var(--text-primary);
+  font-family: 'Merriweather', Georgia, serif;
+  text-align: justify;
+  hyphens: auto;
+  word-wrap: break-word;
+  animation: fadeIn 0.3s ease;
+}
+
+/* Style HTML content from EPUB */
+.page-text h1,
+.page-text h2,
+.page-text h3,
+.page-text h4,
+.page-text h5,
+.page-text h6 {
+  font-family: var(--font-sans);
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text-primary);
+  margin-top: 1.5rem;
+  margin-bottom: 1rem;
+}
+
+.page-text h1 {
+  font-size: 1.75rem;
+  margin-bottom: 1.5rem;
+}
+
+.page-text h2 {
+  font-size: 1.5rem;
+}
+
+.page-text h3 {
+  font-size: 1.25rem;
+}
+
+.page-text p {
+  margin-bottom: 1rem;
+  line-height: inherit;
+}
+
+.page-text em,
+.page-text i {
+  font-style: italic;
+}
+
+.page-text strong,
+.page-text b {
+  font-weight: 600;
+}
+
+.page-text blockquote {
+  margin: 1.5rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid var(--primary-color);
+  font-style: italic;
+  color: var(--text-secondary);
+}
+
+.page-text .page-content-chunk {
+  /* Styling for paginated content chunks */
+  display: block;
+}
+
+/* Page Footer */
+.page-footer {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-tertiary);
+  border-top: 1px solid var(--border-light);
+  font-size: 0.75rem;
+  color: var(--text-tertiary);
+}
+
+.reading-progress {
+  height: 2px;
+  background: var(--border-light);
+  margin-bottom: var(--space-xs);
+  position: relative;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.progress-bar {
+  height: 100%;
+  background: var(--primary-gradient);
+  transition: width var(--transition-base);
+  box-shadow: 0 0 4px rgba(79, 70, 229, 0.4);
+}
+
+.page-info {
+  text-align: center;
+  font-weight: 500;
+}
+
+/* Navigation Zones */
+.nav-zones {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  pointer-events: none;
+  display: flex;
+}
+
+.nav-zone {
+  pointer-events: auto;
+  cursor: pointer;
+  transition: background-color var(--transition-fast);
+}
+
+.nav-zone.prev {
+  width: 30%;
+  background: linear-gradient(90deg, rgba(0,0,0,0.02) 0%, transparent 100%);
+}
+
+.nav-zone.next {
+  width: 30%;
+  margin-left: auto;
+  background: linear-gradient(-90deg, rgba(0,0,0,0.02) 0%, transparent 100%);
+}
+
+.nav-zone:hover {
+  background: rgba(79, 70, 229, 0.05);
+}
+
+/* Page Transitions */
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideInFromLeft {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+.page-view.next-transition {
+  animation: slideInFromRight 0.3s ease;
+}
+
+.page-view.prev-transition {
+  animation: slideInFromLeft 0.3s ease;
+}
+
+/* Empty State */
+.page-view.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-size: 1.1rem;
+}
+
+/* Loading State */
+.page-view.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+
+.page-view.loading p {
+  color: var(--text-secondary);
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+/* Mobile Adjustments */
+@media (max-width: 768px) {
+  .page-content {
+    padding: var(--space-lg) var(--space-md);
+  }
+  
+  .page-header,
+  .page-footer {
+    padding: var(--space-xs) var(--space-md);
+  }
+  
+  .page-header {
+    font-size: 0.7rem;
+  }
+  
+  .page-footer {
+    font-size: 0.7rem;
+  }
+  
+  .nav-zone.prev,
+  .nav-zone.next {
+    width: 40%;
+  }
+}
+
+/* Dark Theme */
+.page-view.theme-dark {
+  background: var(--bg-secondary);
+}
+
+.page-view.theme-dark .page-header,
+.page-view.theme-dark .page-footer {
+  background: var(--bg-tertiary);
+  border-color: var(--border-dark);
+}
+
+.page-view.theme-dark .nav-zone:hover {
+  background: rgba(99, 102, 241, 0.05);
+}
+
+/* Print Styles */
+@media print {
+  .page-header,
+  .page-footer,
+  .nav-zones {
+    display: none;
+  }
+  
+  .page-content {
+    padding: 0;
+    max-width: 100%;
+  }
+  
+  .page-text {
+    color: black;
+    font-size: 12pt;
+  }
+}
