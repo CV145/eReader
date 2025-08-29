@@ -18,235 +18,160 @@
  * - onBack: Callback to navigate back to library
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useEPUB } from '../../../../shared/hooks/useEPUB';
 import { usePagination } from '../../../../shared/hooks/usePagination';
 import Sidebar from '../Sidebar/Sidebar';
-import PageView from '../PageView/PageView';
+import ChapterView from '../ChapterView/ChapterView';
 import ReadingControls from '../Controls/ReadingControls';
+import SettingsSidebar from '../SettingsSidebar/SettingsSidebar';
 import './Reader.css';
 
-const Reader = ({bookData, onProgressUpdate, onBack}) => {
+const Reader = ({bookData, onProgressUpdate}) => {
   // Get EPUB management functions and state from the useEPUB hook
   const {
     book,                    // Parsed book object with metadata and structure
-    currentChapter,          // Current chapter index (0-based)
-    chapterContent,          // Current chapter's HTML content and CSS
-    loading,                 // Loading state for async operations
+    loading: epubLoading,    // Loading state for EPUB operations
     error,                   // Error messages from EPUB operations
     cssEnabled,              // Whether to apply EPUB's original CSS styling
     setCssEnabled,           // Toggle function for CSS styling
-    loadEPUB,               // Function to load EPUB from file (unused - kept for future features)
     loadParsedBook,         // Function to load pre-parsed book data
-    loadChapter,            // Function to load specific chapter by index
-    loadChapterByHref,      // Function to load chapter by href (for navigation)
-    nextChapter,            // Function to navigate to next chapter
-    prevChapter,            // Function to navigate to previous chapter
-    totalChapters           // Total number of chapters in the book
+    loadChapterByHref,      // Function to load chapter by href (for TOC navigation)
   } = useEPUB();
 
   // UI state management for reader interface
-  const [sidebarOpen, setSidebarOpen] = useState(true);    // Sidebar visibility
-  const [fontSize, setFontSize] = useState(16);            // Text size in pixels
-  const [theme, setTheme] = useState('light');             // Color theme (light/dark)
-  const [lineHeight, setLineHeight] = useState(1.8);       // Line height for text
-  const containerRef = useRef(null);                       // Reference to content container
-  const [containerDimensions, setContainerDimensions] = useState({ height: 600, width: 720 });
+  const [sidebarOpen, setSidebarOpen] = useState(true);      // Left sidebar visibility
+  const [settingsSidebarOpen, setSettingsSidebarOpen] = useState(false); // Settings sidebar
+  const [fontSize, setFontSize] = useState(16);              // Text size in pixels
+  const [theme, setTheme] = useState('light');               // Color theme (light/dark)
+  const [viewport, setViewport] = useState({ 
+    width: window.innerWidth, 
+    height: window.innerHeight 
+  });
+
+  // Create render settings object for pagination
+  const renderSettings = useMemo(() => ({
+    fontSize,
+    cssEnabled,
+    viewport
+  }), [fontSize, cssEnabled, viewport]);
+
+  // Initialize pagination hook
+  const {
+    currentPage,
+    totalPages,
+    pageContent,
+    calculating,
+    calculatePages,
+    goToPage,
+    nextPage,
+    prevPage,
+    canGoNext,
+    canGoPrev
+  } = usePagination(book, renderSettings);
 
   // Extract stable book ID for useEffect dependency
   const bookId = bookData?.id;
-  
-  // Store chapter contents for pagination with lazy loading
-  const [allChapters, setAllChapters] = useState([]);
-  const [loadedChapters, setLoadedChapters] = useState(new Set());
-  const [isLoadingChapters, setIsLoadingChapters] = useState(false);
-  
-  // Load initial chapters when book loads (current + adjacent)
-  useEffect(() => {
-    const loadInitialChapters = async () => {
-      if (book && book.spine && !isLoadingChapters) {
-        console.log('Loading initial chapters for pagination, spine length:', book.spine.length);
-        setIsLoadingChapters(true);
-        
-        // Initialize empty chapters array
-        const chaptersData = book.spine.map((item, i) => ({
-          content: null, // Will be loaded on demand
-          title: book.navigation?.[i]?.label || `Chapter ${i + 1}`,
-          index: i,
-          loaded: false
-        }));
-        
-        setAllChapters(chaptersData);
-        
-        // Load current chapter and adjacent ones
-        const chaptersToLoad = [
-          Math.max(0, currentChapter - 1),
-          currentChapter,
-          Math.min(book.spine.length - 1, currentChapter + 1)
-        ];
-        
-        await loadChapterRange(chaptersToLoad);
-        setIsLoadingChapters(false);
-      }
-    };
-    loadInitialChapters();
-  }, [book, currentChapter]); // Load based on current chapter position
-  
-  // Function to load specific chapters
-  const loadChapterRange = async (chapterIndexes) => {
-    if (!book) return;
-    
-    const newLoadedChapters = new Set(loadedChapters);
-    const updatedChapters = [...allChapters];
-    
-    try {
-      for (const i of chapterIndexes) {
-        if (i >= 0 && i < book.spine.length && !newLoadedChapters.has(i)) {
-          console.log(`Loading chapter ${i + 1}...`);
-          
-          const chapterData = await book.getChapter(i);
-          
-          // Debug: Log what we're actually getting from getChapter
-          console.log(`Chapter ${i + 1} raw data:`, {
-            hasContent: !!chapterData.content,
-            contentType: typeof chapterData.content,
-            contentLength: chapterData.content?.length,
-            contentPreview: chapterData.content?.substring(0, 200),
-            allFields: Object.keys(chapterData),
-            title: chapterData.title,
-            hasCss: !!chapterData.css
-          });
-          
-          updatedChapters[i] = {
-            content: chapterData.content,
-            title: book.navigation?.[i]?.label || chapterData.title || `Chapter ${i + 1}`,
-            index: i,
-            css: chapterData.css,
-            loaded: true
-          };
-          
-          newLoadedChapters.add(i);
-        }
-      }
-      
-      setAllChapters(updatedChapters);
-      setLoadedChapters(newLoadedChapters);
-      console.log(`Loaded chapters. Total loaded: ${newLoadedChapters.size}/${book.spine.length}`);
-      
-    } catch (error) {
-      console.error('Error loading chapter range:', error);
-    }
-  };
-  
-  // Initialize pagination hook
-  const {
-    pages,
-    currentPage,
-    totalPages,
-    nextPage,
-    prevPage,
-    goToPage,
-    goToChapter,
-    getCurrentPageContent,
-    progress,
-    currentChapter: currentChapterFromPage,
-    isFirstPage,
-    isLastPage
-  } = usePagination({
-    chapters: allChapters.filter(ch => ch.loaded || ch.content), // Only paginate loaded chapters
-    currentChapterIndex: currentChapter,
-    fontSize,
-    lineHeight,
-    containerHeight: containerDimensions.height,
-    containerWidth: containerDimensions.width
-  });
 
   /**
    * Effect to load book data when bookData prop changes
    * 
-   * This runs when:
-   * - New book is selected (bookId changes)
-   * - Component mounts with bookData
-   * 
    * Process:
    * 1. Load the parsed book data into useEPUB hook
-   * 2. Restore user's last reading position if available
+   * 2. This will trigger pagination calculation automatically
    * 
    * Dependencies: Only [bookId] to avoid infinite loops
-   * (loadParsedBook and loadChapter are intentionally excluded)
    */
   useEffect(() => {
     if (bookData && bookData.parsedData && bookId) {
       // Load the parsed book data into the EPUB hook
-      loadParsedBook(bookId, bookData.parsedData).then(() => {
-        // After book is loaded, restore reading position if user was partway through
-        if (bookData.currentChapter) {
-            loadChapter(bookData.currentChapter);
-        }
-      });
+      loadParsedBook(bookId, bookData.parsedData);
     }
-  }, [bookId]); // Only depend on bookId to prevent infinite re-renders
+  }, [bookId, loadParsedBook]);
+
+  /**
+   * Effect to trigger pagination calculation when book loads or settings change
+   * 
+   * This runs when:
+   * - Book is loaded
+   * - Font size changes
+   * - CSS settings change
+   * - Viewport size changes
+   */
+  useEffect(() => {
+    if (book) {
+      calculatePages();
+    }
+  }, [book, calculatePages]);
+
+  /**
+   * Effect to handle viewport size changes for responsive pagination
+   */
+  useEffect(() => {
+    const handleResize = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+    
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   /**
    * Effect to track and report reading progress
    * 
-   * Calculates progress as percentage based on pages
-   * Progress = (current page + 1) / total pages * 100
-   * 
-   * Dependencies: [currentPage, totalPages]
-   * (onProgressUpdate intentionally excluded to prevent re-renders)
+   * Calculates progress as percentage based on current page
+   * Progress = (current page) / total pages * 100
    */
   useEffect(() => {
-    if (book && currentPage !== undefined && onProgressUpdate) {
-      // Report progress to parent (ReaderPage) for storage
-      onProgressUpdate(currentChapterFromPage, progress);
+    if (book && currentPage && totalPages && onProgressUpdate) {
+      // Calculate reading progress as percentage
+      const progress = (currentPage / totalPages) * 100;
+      
+      // For compatibility, we still need to provide a chapter number
+      // Estimate chapter from page (this is approximate)
+      const estimatedChapter = Math.floor((currentPage - 1) / Math.max(1, totalPages / (book.spine?.length || 1)));
+      
+      // Report progress to parent for storage
+      onProgressUpdate(estimatedChapter, progress);
     }
-  }, [currentPage, totalPages, currentChapterFromPage, progress]); // Exclude onProgressUpdate to prevent re-renders
+  }, [currentPage, totalPages, book, onProgressUpdate]);
 
   /**
-   * Keyboard navigation handler
+   * Keyboard navigation handler for page-based navigation
    * 
-   * Implements Kindle-style keyboard navigation:
+   * Implements keyboard navigation:
    * - Left arrow: Previous page
    * - Right arrow: Next page
    * - Space: Next page
    * - Shift+Space: Previous page
-   * - G: Go to page dialog
    */
   useEffect(() => {
     const handleKeyDown = (e) => {
-      // Ignore if user is typing in an input field
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') {
+      // Ignore if user is typing in an input field or settings sidebar is open
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || settingsSidebarOpen) {
         return;
       }
       
       switch(e.key) {
         case 'ArrowLeft':
           e.preventDefault();
-          prevPage();
+          if (canGoPrev) prevPage();
           break;
         case 'ArrowRight':
           e.preventDefault();
-          nextPage();
+          if (canGoNext) nextPage();
           break;
         case ' ': // Spacebar
           e.preventDefault();
           if (e.shiftKey) {
-            prevPage();
+            if (canGoPrev) prevPage();
           } else {
-            nextPage();
+            if (canGoNext) nextPage();
           }
           break;
-        case 'g':
-        case 'G':
-          // TODO: Show go-to-page dialog
-          e.preventDefault();
-          const pageNum = prompt(`Go to page (1-${totalPages}):`);
-          if (pageNum) {
-            const page = parseInt(pageNum) - 1;
-            if (page >= 0 && page < totalPages) {
-              goToPage(page);
-            }
+        case 'Escape': // Close settings sidebar
+          if (settingsSidebarOpen) {
+            setSettingsSidebarOpen(false);
           }
           break;
         default:
@@ -261,33 +186,7 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
     return () => {
       window.removeEventListener('keydown', handleKeyDown);
     };
-  }, [nextPage, prevPage, goToPage, totalPages]);
-  
-  /**
-   * Update container dimensions on mount and resize
-   */
-  useEffect(() => {
-    const updateDimensions = () => {
-      if (containerRef.current) {
-        const height = containerRef.current.offsetHeight || 600;
-        const width = containerRef.current.offsetWidth || 720;
-        console.log('Container dimensions:', { height, width });
-        setContainerDimensions({ height, width });
-      } else {
-        console.log('Container ref not available, using defaults');
-        setContainerDimensions({ height: 600, width: 720 });
-      }
-    };
-    
-    // Wait a bit for DOM to render before measuring
-    const timer = setTimeout(updateDimensions, 100);
-    window.addEventListener('resize', updateDimensions);
-    
-    return () => {
-      clearTimeout(timer);
-      window.removeEventListener('resize', updateDimensions);
-    };
-  }, []);
+  }, [nextPage, prevPage, canGoNext, canGoPrev, settingsSidebarOpen]);
 
   // Show loading state if book data hasn't been loaded yet
   if (!book) {
@@ -302,56 +201,56 @@ const Reader = ({bookData, onProgressUpdate, onBack}) => {
 
   // Main reader interface with all components
   return (
-    <div className={`reader-container theme-${theme}`}>
-      {/* Sidebar - Table of contents and navigation */}
+    <div className={`reader-container theme-${theme} ${settingsSidebarOpen ? 'settings-sidebar-open' : ''}`}>
+      {/* Left Sidebar - Table of contents and navigation */}
       <Sidebar
         isOpen={sidebarOpen}
         book={book}                                     // Book structure for TOC
-        currentChapter={currentChapterFromPage}         // Highlight current chapter from page
-        onNavigate={(href) => {                        // Handle TOC link clicks
-          // Find chapter index and go to its first page
-          const chapterIndex = book.spine.findIndex(item => item.href === href);
-          if (chapterIndex !== -1) {
-            goToChapter(chapterIndex);
-          }
-        }}
-        onChapterSelect={goToChapter}                   // Handle direct chapter selection
+        currentChapter={0}                              // TODO: Map current page to chapter
+        onNavigate={loadChapterByHref}                 // Handle TOC link clicks
+        onChapterSelect={() => {}}                      // Disabled for now - need page mapping
       />
       
       {/* Main reading area */}
-      <div className="reader-main" ref={containerRef}>
-        {/* Reading controls - navigation, settings, theme */}
+      <div className="reader-main">
+        {/* Reading controls - navigation and settings toggle */}
         <ReadingControls
-          currentChapter={currentChapterFromPage}       // Current chapter from page
-          totalChapters={totalPages}                    // Total pages instead of chapters
-          fontSize={fontSize}                           // Current font size
-          onFontSizeChange={setFontSize}               // Font size adjustment
-          theme={theme}                                 // Current theme
-          onThemeChange={setTheme}                     // Theme switching
-          cssEnabled={cssEnabled}                       // EPUB CSS toggle state
-          onCssToggle={() => setCssEnabled(!cssEnabled)} // Toggle EPUB styling
-          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} // Toggle sidebar
-          sidebarOpen={sidebarOpen}                     // Sidebar state
+          currentPage={currentPage}                     // Current page number
+          totalPages={totalPages}                       // Total pages for progress
+          onPrevious={prevPage}                         // Previous page navigation
+          onNext={nextPage}                            // Next page navigation
+          settingsSidebarOpen={settingsSidebarOpen}    // Settings sidebar state
+          onToggleSettingsSidebar={() => setSettingsSidebarOpen(!settingsSidebarOpen)}
+          onToggleSidebar={() => setSidebarOpen(!sidebarOpen)} // Toggle left sidebar
+          sidebarOpen={sidebarOpen}                     // Left sidebar state
         />
         
         {/* Page content display */}
-        <PageView
-          content={getCurrentPageContent()}             // Current page content
-          pageInfo={{
-            current: currentPage + 1,
-            total: totalPages,
-            chapterIndex: currentChapterFromPage,
-            isFirstPage,
-            isLastPage
-          }}
+        <ChapterView
+          content={pageContent}                         // Current page HTML content
+          loading={epubLoading || calculating}          // Loading state from useEPUB or pagination
+          error={error}                                // Error messages
           fontSize={fontSize}                          // Applied font size
-          lineHeight={lineHeight}                      // Line height
           cssEnabled={cssEnabled}                      // Whether to apply EPUB CSS
-          onNextPage={nextPage}                        // Next page navigation
-          onPrevPage={prevPage}                        // Previous page navigation
-          theme={theme}                                 // Current theme
         />
       </div>
+      
+      {/* Settings Sidebar - Font, theme, navigation controls */}
+      <SettingsSidebar
+        isOpen={settingsSidebarOpen}
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
+        theme={theme}
+        onThemeChange={setTheme}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onGoToPage={goToPage}
+        // Future props for layout controls
+        // textAlign={textAlign}
+        // onTextAlignChange={setTextAlign}
+        // margins={margins}
+        // onMarginsChange={setMargins}
+      />
     </div>
   );
 };

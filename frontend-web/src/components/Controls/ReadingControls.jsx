@@ -4,23 +4,22 @@ import { useNavigate } from 'react-router-dom';
 import { 
   FiArrowLeft,
   FiMenu,
-  FiMinus, 
-  FiPlus,
-  FiSun,
-  FiMoon,
-  FiType
+  FiChevronLeft,
+  FiChevronRight,
+  FiSettings
 } from 'react-icons/fi';
 import './Controls.css';
 
 const ReadingControls = ({
-  currentChapter,
-  totalChapters,
-  fontSize,
-  onFontSizeChange,
-  theme,
-  onThemeChange,
-  cssEnabled,
-  onCssToggle,
+  // Page-based navigation props (replaces chapter-based)
+  currentPage,
+  totalPages,
+  onPrevious,
+  onNext,
+  // Settings sidebar props
+  settingsSidebarOpen,
+  onToggleSettingsSidebar,
+  // Left sidebar props (unchanged)
   onToggleSidebar,
   sidebarOpen
 }) => {
@@ -46,50 +45,44 @@ const ReadingControls = ({
           <FiMenu />
         </button>
         
-        <span className="chapter-indicator">
-          Page <span>{currentChapter + 1}</span> of {totalChapters}
+        <button 
+          onClick={onPrevious}
+          disabled={currentPage === 1}
+          className="control-btn"
+          title="Previous Page"
+        >
+          <FiChevronLeft />
+        </button>
+        
+        <span className="page-indicator">
+          Page <span>{currentPage}</span> of {totalPages}
         </span>
+        
+        <button 
+          onClick={onNext}
+          disabled={currentPage === totalPages}
+          className="control-btn"
+          title="Next Page"
+        >
+          <FiChevronRight />
+        </button>
       </div>
       
       <div className="controls-center">
         <div className="keyboard-hint">
-          Use ← → arrows or Space to navigate
+          Use ← → arrows or Space to navigate pages
         </div>
       </div>
       
       <div className="controls-right">
-        <div className="font-controls">
-          <button 
-            onClick={() => onFontSizeChange(Math.max(12, fontSize - 2))}
-            className="control-btn"
-            title="Decrease Font Size"
-          >
-            <FiMinus />
-          </button>
-          <span className="font-size">{fontSize}px</span>
-          <button 
-            onClick={() => onFontSizeChange(Math.min(32, fontSize + 2))}
-            className="control-btn"
-            title="Increase Font Size"
-          >
-            <FiPlus />
-          </button>
-        </div>
-        
-        <button
-          onClick={() => onThemeChange(theme === 'light' ? 'dark' : 'light')}
-          className="control-btn theme-toggle"
-          title={`Switch to ${theme === 'light' ? 'dark' : 'light'} theme`}
+        {/* Replace individual controls with single Settings button */}
+        <button 
+          onClick={onToggleSettingsSidebar}
+          className={`control-btn settings-toggle ${settingsSidebarOpen ? 'active' : ''}`}
+          title="Reading Settings"
         >
-          {theme === 'light' ? <FiMoon /> : <FiSun />}
-        </button>
-        
-        <button
-          onClick={onCssToggle}
-          className={`control-btn css-toggle ${cssEnabled ? 'active' : ''}`}
-          title={`${cssEnabled ? 'Disable' : 'Enable'} EPUB Styles`}
-        >
-          <FiType />
+          <FiSettings />
+          <span>Settings</span>
         </button>
       </div>
     </div>

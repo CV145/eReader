@@ -1,0 +1,366 @@
+# ReadingControls Right Sidebar Enhancement Plan
+
+## Current State Analysis
+
+### Existing ReadingControls Structure:
+```
+<div className="reading-controls">
+  <div className="controls-left">     // Back, Sidebar Toggle, Chapter Nav
+  <div className="controls-center">   // Keyboard hints
+  <div className="controls-right">    // Font size, Theme toggle
+```
+
+### Current Features:
+- **Left Side**: Back to library, Toggle left sidebar, Chapter navigation (prev/next)
+- **Center**: Keyboard navigation hints
+- **Right Side**: Font size controls (+/- buttons), Theme toggle (light/dark)
+
+### Current Font Controls:
+- Simple +/- buttons with 2px increments
+- Range: 12px to 32px
+- Direct display of current font size
+
+## New Right Sidebar Design
+
+### Core Concept: Settings Panel
+Transform the current right-side controls into a toggle button that opens a comprehensive settings sidebar on the right side of the screen.
+
+### Layout Architecture:
+```
+Reader Layout:
+├── Left Sidebar (existing TOC)
+├── Main Content (PageView)
+└── Right Sidebar (new settings panel)
+```
+
+## Detailed Implementation Plan
+
+### 1. Updated ReadingControls Structure
+```javascript
+const ReadingControls = ({
+  // ... existing props
+  rightSidebarOpen,
+  onToggleRightSidebar
+}) => {
+  return (
+    <div className="reading-controls">
+      <div className="controls-left">
+        {/* Existing: Back, Left Sidebar Toggle, Navigation */}
+      </div>
+      
+      <div className="controls-center">
+        {/* Page indicator replaces chapter indicator */}
+        <span className="page-indicator">
+          Page {currentPage} of {totalPages}
+        </span>
+      </div>
+      
+      <div className="controls-right">
+        {/* Replace individual controls with single Settings button */}
+        <button 
+          onClick={onToggleRightSidebar}
+          className={`control-btn settings-toggle ${rightSidebarOpen ? 'active' : ''}`}
+          title="Reading Settings"
+        >
+          <FiSettings />
+          <span>Settings</span>
+        </button>
+      </div>
+    </div>
+  );
+};
+```
+
+### 2. New SettingsSidebar Component
+```javascript
+const SettingsSidebar = ({ 
+  isOpen, 
+  fontSize, 
+  onFontSizeChange, 
+  theme, 
+  onThemeChange,
+  currentPage,
+  totalPages,
+  onGoToPage,
+  // Future props
+  textAlign,
+  onTextAlignChange,
+  margins,
+  onMarginsChange
+}) => {
+  const [goToPageInput, setGoToPageInput] = useState('');
+  const [showGoToPage, setShowGoToPage] = useState(false);
+
+  return (
+    <div className={`settings-sidebar ${isOpen ? 'open' : ''}`}>
+      <div className="settings-sidebar-content">
+        
+        {/* Font Settings Section */}
+        <div className="settings-section">
+          <h3>Font Size</h3>
+          <div className="font-size-controls">
+            <button onClick={() => onFontSizeChange(fontSize - 2)}>
+              <FiMinus />
+            </button>
+            <div className="font-size-display">
+              <span>{fontSize}px</span>
+              <input 
+                type="range" 
+                min="12" 
+                max="32" 
+                step="2"
+                value={fontSize}
+                onChange={(e) => onFontSizeChange(parseInt(e.target.value))}
+                className="font-size-slider"
+              />
+            </div>
+            <button onClick={() => onFontSizeChange(fontSize + 2)}>
+              <FiPlus />
+            </button>
+          </div>
+        </div>
+
+        {/* Navigation Section */}
+        <div className="settings-section">
+          <h3>Navigation</h3>
+          <div className="navigation-controls">
+            <div className="page-info">
+              Page {currentPage} of {totalPages}
+            </div>
+            <button 
+              className="go-to-page-btn"
+              onClick={() => setShowGoToPage(!showGoToPage)}
+            >
+              <FiNavigation />
+              Go to Page
+            </button>
+            {showGoToPage && (
+              <div className="go-to-page-form">
+                <input
+                  type="number"
+                  min="1"
+                  max={totalPages}
+                  value={goToPageInput}
+                  onChange={(e) => setGoToPageInput(e.target.value)}
+                  placeholder={`1-${totalPages}`}
+                />
+                <button 
+                  onClick={() => {
+                    const page = parseInt(goToPageInput);
+                    if (page >= 1 && page <= totalPages) {
+                      onGoToPage(page);
+                      setGoToPageInput('');
+                      setShowGoToPage(false);
+                    }
+                  }}
+                >
+                  Go
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Theme Section */}
+        <div className="settings-section">
+          <h3>Appearance</h3>
+          <div className="theme-controls">
+            <button 
+              className={`theme-btn ${theme === 'light' ? 'active' : ''}`}
+              onClick={() => onThemeChange('light')}
+            >
+              <FiSun />
+              Light
+            </button>
+            <button 
+              className={`theme-btn ${theme === 'dark' ? 'active' : ''}`}
+              onClick={() => onThemeChange('dark')}
+            >
+              <FiMoon />
+              Dark
+            </button>
+          </div>
+        </div>
+
+        {/* Future Features - Scaffolded */}
+        <div className="settings-section">
+          <h3>Text Layout</h3>
+          <div className="layout-controls">
+            {/* Text Alignment Controls */}
+            <div className="control-group">
+              <label>Text Alignment</label>
+              <div className="alignment-buttons">
+                <button className={textAlign === 'left' ? 'active' : ''}>
+                  <FiAlignLeft />
+                </button>
+                <button className={textAlign === 'center' ? 'active' : ''}>
+                  <FiAlignCenter />
+                </button>
+                <button className={textAlign === 'justify' ? 'active' : ''}>
+                  <FiAlignJustify />
+                </button>
+              </div>
+            </div>
+            
+            {/* Margin Controls */}
+            <div className="control-group">
+              <label>Page Margins</label>
+              <input 
+                type="range" 
+                min="10" 
+                max="50" 
+                value={margins}
+                className="margin-slider"
+                disabled // Placeholder for future implementation
+              />
+              <span className="margin-value">{margins}px</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  );
+};
+```
+
+### 3. Reader Component Integration
+```javascript
+const Reader = ({ bookData, onProgressUpdate }) => {
+  // ... existing state
+  const [rightSidebarOpen, setRightSidebarOpen] = useState(false);
+
+  return (
+    <div className={`reader-container ${rightSidebarOpen ? 'right-sidebar-open' : ''}`}>
+      <Sidebar isOpen={sidebarOpen} ... />
+      
+      <div className="reader-main">
+        <ReadingControls
+          // ... existing props
+          rightSidebarOpen={rightSidebarOpen}
+          onToggleRightSidebar={() => setRightSidebarOpen(!rightSidebarOpen)}
+        />
+        
+        <PageView ... />
+      </div>
+      
+      <SettingsSidebar
+        isOpen={rightSidebarOpen}
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}
+        theme={theme}
+        onThemeChange={setTheme}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onGoToPage={goToPage}
+        // Future props
+        textAlign={textAlign}
+        onTextAlignChange={setTextAlign}
+        margins={margins}
+        onMarginsChange={setMargins}
+      />
+    </div>
+  );
+};
+```
+
+## Feature Breakdown
+
+### ✅ **Immediate Features**
+1. **Font Size Enhanced**
+   - Keep existing +/- buttons
+   - Add range slider for precise control
+   - Visual feedback with live preview
+
+2. **Go-to-Page**
+   - Toggle button to show/hide input
+   - Number input with validation
+   - Quick navigation to any page
+
+3. **Theme Toggle**
+   - Radio button style selection
+   - Light/Dark theme switching
+   - Visual indicators for active theme
+
+### 🔧 **Future Features (Scaffolded)**
+1. **Text Alignment**
+   - Left, Center, Justify options
+   - Icon-based toggle buttons
+   - Live preview of changes
+
+2. **Page Margins**
+   - Slider control for margin width
+   - Range: 10px to 50px
+   - Affects content area width
+
+3. **Line Spacing** (future)
+4. **Column Layout** (future)
+5. **Font Family Selection** (future)
+
+## CSS Layout Strategy
+
+### Settings Sidebar Styling:
+```css
+.settings-sidebar {
+  position: fixed;
+  right: -350px; /* Hidden by default */
+  top: 60px; /* Below ReadingControls */
+  width: 350px;
+  height: calc(100vh - 60px);
+  background: var(--sidebar-bg);
+  border-left: 1px solid var(--border-color);
+  transition: right 0.3s ease;
+  z-index: 1000;
+}
+
+.settings-sidebar.open {
+  right: 0; /* Slide in from right */
+}
+
+.reader-container.settings-sidebar-open .reader-main {
+  margin-right: 350px; /* Make space for sidebar */
+}
+```
+
+## User Experience Flow
+
+### Opening Settings:
+1. User clicks "Settings" button in ReadingControls
+2. Right sidebar slides in from the right
+3. Main content area adjusts width to accommodate sidebar
+4. Settings are organized in collapsible sections
+
+### Font Size Adjustment:
+1. User sees current font size prominently displayed
+2. Can use +/- buttons for quick 2px adjustments
+3. Can use slider for precise control
+4. Changes apply immediately to PageView
+
+### Go-to-Page Navigation:
+1. User clicks "Go to Page" button
+2. Input field appears with validation
+3. User enters page number and clicks "Go"
+4. Navigation happens instantly, form closes
+
+## Benefits
+
+✅ **Better Organization**: Groups all reading settings in one place
+✅ **More Space**: Frees up ReadingControls bar for essential navigation
+✅ **Enhanced Controls**: Slider for font size, better go-to-page UX
+✅ **Future-Ready**: Easy to add new features like margins, alignment
+✅ **Mobile-Friendly**: Collapsible sidebar works on smaller screens
+✅ **Consistent UX**: Matches pattern of left sidebar for TOC
+
+## Files to Create/Modify
+
+### New Files:
+- `/components/SettingsSidebar/SettingsSidebar.jsx`
+- `/components/SettingsSidebar/SettingsSidebar.css`
+
+### Modified Files:
+- `/components/Controls/ReadingControls.jsx` - Simplified controls with Settings button
+- `/components/Controls/Controls.css` - Updated styling
+- `/components/Reader/Reader.jsx` - Add right sidebar state and component
+- `/components/Reader/Reader.css` - Layout adjustments for right sidebar
+
+This approach transforms the reading experience by providing a comprehensive settings panel while keeping the main controls bar clean and focused on essential navigation.

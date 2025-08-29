@@ -39,6 +39,6 @@ Progressive Web App offline mode
 
 
 Workflow:
-- Gemini in web browser for code generation
-- Claude Opus for UI
-- Claude Code to ask questions and explain code and tweak
+- Gemini for planning and providing prompts to Claude Code
+- Claude Code for actual coding
+- Opus for UI

@@ -26,6 +26,15 @@
  * - Wrap app with LibraryProvider
  * - Use useLibrary() hook in components
  * - Access books array, loading state, and CRUD functions
+ * 
+ * Where are books stored?
+ * - Locally on device using IndexedDB (browser's local database)
+ * Database name: 'ereader-library'
+ * Object store: 'books'
+ * Each book stored with: {id, title,
+   author, coverImage, uploadDate,
+  currentChapter, progress,
+  parsedData}
  */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 

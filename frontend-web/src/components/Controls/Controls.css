@@ -111,7 +111,26 @@
   border-color: var(--primary-color);
 }
 
-/* Chapter Indicator */
+/* Page Indicator (replaces Chapter Indicator) */
+.page-indicator {
+  padding: var(--space-sm) var(--space-lg);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  font-weight: 600;
+  margin-left: var(--space-sm);
+  text-align: center;
+  border: 1px solid var(--border-light);
+  white-space: nowrap;
+}
+
+.page-indicator span {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+/* Keep old chapter-indicator for backward compatibility */
 .chapter-indicator {
   padding: var(--space-sm) var(--space-lg);
   background: var(--bg-tertiary);
@@ -162,7 +181,64 @@
   background: var(--bg-primary);
 }
 
-/* Theme Toggle Button */
+/* Settings Toggle Button (replaces font/theme controls) */
+.settings-toggle {
+  background: var(--bg-tertiary);
+  border: 1px solid var(--border-light);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius-md);
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-weight: 500;
+  position: relative;
+}
+
+.settings-toggle:hover {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.settings-toggle.active {
+  background: var(--primary-color);
+  color: white;
+  border-color: var(--primary-color);
+  box-shadow: var(--shadow-md);
+}
+
+.settings-toggle.active::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  right: 20px;
+  width: 0;
+  height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 8px solid var(--primary-color);
+  transform: rotate(180deg);
+}
+
+.settings-toggle svg {
+  transition: transform var(--transition-fast);
+  font-size: 1.1rem;
+}
+
+.settings-toggle:hover svg,
+.settings-toggle.active svg {
+  transform: rotate(90deg);
+}
+
+.settings-toggle span {
+  font-size: 0.875rem;
+}
+
+/* Theme Toggle Button (kept for backward compatibility) */
 .theme-toggle {
   background: var(--bg-tertiary);
   border: 1px solid var(--border-light);
@@ -250,10 +326,15 @@
     font-size: 0.7rem;
   }
   
-  .chapter-indicator {
+  .chapter-indicator,
+  .page-indicator {
     min-width: auto;
     padding: var(--space-xs) var(--space-sm);
     margin-left: var(--space-xs);
+  }
+  
+  .settings-toggle span {
+    display: none; /* Hide "Settings" text on mobile */
   }
   
   .control-btn.back-btn span {
@@ -303,9 +384,27 @@
   background: var(--bg-secondary);
 }
 
-.theme-dark .chapter-indicator {
+.theme-dark .chapter-indicator,
+.theme-dark .page-indicator {
   background: var(--bg-tertiary);
   border-color: var(--border-medium);
+}
+
+.theme-dark .settings-toggle {
+  background: var(--bg-tertiary);
+  border-color: var(--border-medium);
+  color: var(--text-secondary);
+}
+
+.theme-dark .settings-toggle:hover,
+.theme-dark .settings-toggle.active {
+  background: var(--primary-light);
+  border-color: var(--primary-light);
+  color: var(--bg-primary);
+}
+
+.theme-dark .settings-toggle.active::after {
+  border-bottom-color: var(--primary-light);
 }
 
 .theme-dark .theme-toggle:hover {

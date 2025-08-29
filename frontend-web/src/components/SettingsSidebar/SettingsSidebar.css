@@ -1,0 +1,510 @@
+/**
+ * SettingsSidebar Component Styles
+ * 
+ * Comprehensive styling for the reading settings panel that slides in from the right.
+ * Includes responsive design, smooth animations, and accessibility features.
+ */
+
+/* Main sidebar container */
+.settings-sidebar {
+  position: fixed;
+  right: -400px;                    /* Hidden by default, slides in from right */
+  top: 60px;                        /* Below ReadingControls bar */
+  width: 400px;                     /* Fixed width for consistent layout */
+  height: calc(100vh - 60px);       /* Full height minus controls */
+  background: var(--sidebar-bg, #ffffff);
+  border-left: 1px solid var(--border-color, #e5e5e5);
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.1);
+  transition: right 0.3s ease;      /* Smooth slide animation */
+  z-index: 1000;                    /* Above other content */
+  overflow-y: auto;                 /* Scrollable if content is too tall */
+  overflow-x: hidden;
+}
+
+/* Sidebar visible state */
+.settings-sidebar.open {
+  right: 0;                         /* Slide into view */
+}
+
+/* Sidebar content wrapper with padding and spacing */
+.settings-sidebar-content {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 30px;                        /* Space between sections */
+}
+
+/* Individual settings sections */
+.settings-section {
+  background: var(--section-bg, #f8f9fa);
+  border: 1px solid var(--section-border, #e9ecef);
+  border-radius: 12px;
+  padding: 20px;
+  transition: all 0.2s ease;
+}
+
+.settings-section:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+
+/* Section titles */
+.section-title {
+  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--text-color, #333333);
+  border-bottom: 2px solid var(--accent-color, #007bff);
+  padding-bottom: 8px;
+}
+
+/* Font Size Controls */
+.font-size-controls {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 0;
+}
+
+.size-btn {
+  width: 40px;
+  height: 40px;
+  border: 2px solid var(--accent-color, #007bff);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--accent-color, #007bff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+}
+
+.size-btn:hover:not(:disabled) {
+  background: var(--accent-color, #007bff);
+  color: white;
+  transform: scale(1.05);
+}
+
+.size-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.font-size-display {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.font-size-value {
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-color, #333333);
+  min-width: 45px;
+  text-align: center;
+}
+
+.font-size-slider {
+  width: 100%;
+  height: 8px;
+  border-radius: 4px;
+  background: var(--slider-bg, #e9ecef);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.font-size-slider::-webkit-slider-thumb {
+  appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-color, #007bff);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  transition: all 0.2s ease;
+}
+
+.font-size-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.3);
+}
+
+.font-size-slider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--accent-color, #007bff);
+  cursor: pointer;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* Navigation Controls */
+.navigation-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.page-info {
+  text-align: center;
+  padding: 12px;
+  background: var(--info-bg, #f8f9fa);
+  border-radius: 8px;
+  border: 1px solid var(--info-border, #dee2e6);
+}
+
+.current-page {
+  display: block;
+  font-weight: 600;
+  font-size: 16px;
+  color: var(--text-color, #333333);
+  margin-bottom: 8px;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 6px;
+  background: var(--progress-bg, #e9ecef);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--accent-color, #007bff), var(--accent-light, #66b3ff));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.go-to-page-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 16px;
+  background: transparent;
+  border: 2px solid var(--accent-color, #007bff);
+  border-radius: 8px;
+  color: var(--accent-color, #007bff);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  justify-content: center;
+}
+
+.go-to-page-btn:hover,
+.go-to-page-btn.active {
+  background: var(--accent-color, #007bff);
+  color: white;
+}
+
+.go-to-page-form {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--form-bg, #ffffff);
+  border: 1px solid var(--form-border, #dee2e6);
+  border-radius: 8px;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.page-input {
+  padding: 12px;
+  border: 2px solid var(--input-border, #ced4da);
+  border-radius: 6px;
+  font-size: 16px;
+  text-align: center;
+  transition: border-color 0.2s ease;
+}
+
+.page-input:focus {
+  outline: none;
+  border-color: var(--accent-color, #007bff);
+  box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
+}
+
+.form-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  flex: 1;
+  padding: 10px 16px;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 2px solid transparent;
+}
+
+.control-btn.primary {
+  background: var(--accent-color, #007bff);
+  color: white;
+  border-color: var(--accent-color, #007bff);
+}
+
+.control-btn.primary:hover:not(:disabled) {
+  background: var(--accent-dark, #0056b3);
+  transform: translateY(-1px);
+}
+
+.control-btn.primary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.control-btn.secondary {
+  background: transparent;
+  color: var(--text-muted, #6c757d);
+  border-color: var(--border-color, #ced4da);
+}
+
+.control-btn.secondary:hover {
+  background: var(--hover-bg, #f8f9fa);
+}
+
+/* Theme Controls */
+.theme-controls {
+  display: flex;
+  gap: 12px;
+}
+
+.theme-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border: 2px solid var(--theme-border, #dee2e6);
+  border-radius: 12px;
+  background: var(--theme-bg, #ffffff);
+  color: var(--text-color, #333333);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.theme-btn:hover {
+  border-color: var(--accent-color, #007bff);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.theme-btn.active {
+  border-color: var(--accent-color, #007bff);
+  background: var(--accent-light, #e3f2fd);
+  color: var(--accent-color, #007bff);
+}
+
+.theme-btn svg {
+  font-size: 24px;
+}
+
+.theme-btn span {
+  font-weight: 500;
+  font-size: 14px;
+}
+
+/* Layout Controls (Future Features) */
+.layout-section {
+  opacity: 0.7;                    /* Indicate these are not yet functional */
+}
+
+.layout-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.control-label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-color, #333333);
+  margin-bottom: 8px;
+}
+
+.alignment-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.alignment-btn {
+  flex: 1;
+  padding: 12px;
+  border: 2px solid var(--border-color, #dee2e6);
+  border-radius: 8px;
+  background: transparent;
+  color: var(--text-muted, #6c757d);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.alignment-btn:not(:disabled):hover {
+  border-color: var(--accent-color, #007bff);
+  color: var(--accent-color, #007bff);
+}
+
+.alignment-btn.active {
+  border-color: var(--accent-color, #007bff);
+  background: var(--accent-light, #e3f2fd);
+  color: var(--accent-color, #007bff);
+}
+
+.alignment-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.margin-control {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.margin-slider {
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--slider-bg, #e9ecef);
+  outline: none;
+  appearance: none;
+  cursor: pointer;
+}
+
+.margin-slider:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.margin-value {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-color, #333333);
+  min-width: 40px;
+}
+
+.control-help {
+  font-size: 12px;
+  color: var(--text-muted, #6c757d);
+  margin: 0;
+  font-style: italic;
+}
+
+.coming-soon {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--info-bg, #f8f9fa);
+  border: 1px solid var(--info-border, #dee2e6);
+  border-radius: 6px;
+  text-align: center;
+}
+
+.coming-soon p {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted, #6c757d);
+  font-style: italic;
+}
+
+/* Dark theme support */
+.theme-dark .settings-sidebar {
+  --sidebar-bg: #2d3748;
+  --section-bg: #4a5568;
+  --section-border: #718096;
+  --text-color: #e2e8f0;
+  --text-muted: #a0aec0;
+  --border-color: #4a5568;
+  --accent-color: #63b3ed;
+  --accent-light: #2d3748;
+  --accent-dark: #3182ce;
+  --info-bg: #4a5568;
+  --info-border: #718096;
+  --form-bg: #2d3748;
+  --form-border: #4a5568;
+  --input-border: #718096;
+  --theme-bg: #4a5568;
+  --theme-border: #718096;
+  --slider-bg: #4a5568;
+  --progress-bg: #4a5568;
+  --hover-bg: #4a5568;
+}
+
+/* Responsive design for smaller screens */
+@media (max-width: 768px) {
+  .settings-sidebar {
+    width: 100%;                  /* Full width on mobile */
+    right: -100%;
+    border-left: none;
+    border-top: 1px solid var(--border-color, #e5e5e5);
+  }
+  
+  .settings-sidebar.open {
+    right: 0;
+  }
+  
+  .settings-sidebar-content {
+    padding: 16px;
+    gap: 20px;
+  }
+  
+  .font-size-controls {
+    gap: 12px;
+  }
+  
+  .theme-controls {
+    flex-direction: column;
+  }
+}
+
+/* Accessibility enhancements */
+@media (prefers-reduced-motion: reduce) {
+  .settings-sidebar,
+  .control-btn,
+  .theme-btn,
+  .progress-fill {
+    transition: none;
+  }
+}
+
+/* Focus styles for keyboard navigation */
+.settings-sidebar button:focus-visible,
+.settings-sidebar input:focus-visible {
+  outline: 2px solid var(--accent-color, #007bff);
+  outline-offset: 2px;
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+  .settings-sidebar {
+    border-left-width: 2px;
+  }
+  
+  .settings-section {
+    border-width: 2px;
+  }
+  
+  .control-btn,
+  .theme-btn,
+  .alignment-btn {
+    border-width: 2px;
+  }
+}

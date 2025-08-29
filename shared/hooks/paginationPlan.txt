@@ -1,0 +1,360 @@
+# Book Pagination Implementation Plan
+
+## Current State Analysis
+
+### Existing Architecture:
+- **ChapterView**: Displays one chapter at a time with HTML content
+- **useEPUB Hook**: Manages chapter navigation, but chapter-by-chapter only
+- **PageView Component**: Exists but appears to be empty/minimal
+- **Font Settings**: FontHandler.js handles font loading, fontSize state in Reader
+- **CSS Control**: cssEnabled toggle affects chapter styling
+
+### Current Limitations:
+- Navigation is chapter-based, not page-based
+- No concept of "pages" within chapters
+- No total page count for entire book
+- Font/layout changes don't trigger recalculation
+
+## Pagination Strategy
+
+### Core Concept: Virtual Pagination
+Instead of pre-splitting content, we'll calculate pages dynamically based on:
+1. Available viewport dimensions
+2. Current font size and CSS settings
+3. Actual rendered text dimensions
+
+### Implementation Approach
+
+#### Phase 1: Page Calculation Engine
+Create a `PaginationEngine` class that:
+- Takes chapter content and rendering settings as input
+- Calculates how much text fits on one "page" (screen)
+- Determines page break points within and across chapters
+- Returns total page count and page-to-chapter mapping
+
+#### Phase 2: Enhanced PageView Component
+Upgrade PageView to:
+- Display exactly one "page" worth of content
+- Handle page boundaries that span chapters
+- Show proper page numbers (current/total)
+- Maintain reading position across layout changes
+
+#### Phase 3: Pagination-Aware Navigation
+Update navigation system to:
+- Navigate by pages instead of chapters
+- Maintain accurate page position
+- Recalculate on font/layout changes
+- Preserve reading location during recalculation
+
+## Detailed Implementation Plan
+
+### 1. PaginationEngine (New)
+```javascript
+class PaginationEngine {
+  constructor(book, renderSettings) {
+    this.book = book;
+    this.renderSettings = renderSettings; // fontSize, cssEnabled, viewport
+    this.pageMap = []; // [{chapterIndex, startOffset, endOffset, pageNumber}]
+    this.totalPages = 0;
+  }
+
+  async calculateAllPages() {
+    // 1. Create invisible measurement container with same styles
+    // 2. Iterate through all chapters
+    // 3. Render content in measurement container
+    // 4. Calculate how much fits per page
+    // 5. Build pageMap with chapter boundaries
+    // 6. Return total page count
+  }
+}
+```
+
+### 2. New usePagination Hook
+Create dedicated pagination hook with embedded PaginationEngine:
+```javascript
+// usePagination.js
+class PaginationEngine {
+  constructor(book, renderSettings) {
+    this.book = book;
+    this.renderSettings = renderSettings;
+    this.pageMap = [];
+    this.totalPages = 0;
+  }
+
+  async calculateAllPages() {
+    // Core pagination calculation logic here
+    return {
+      totalPages: this.totalPages,
+      pageMap: this.pageMap,
+      getPageInfo: (pageNum) => this.pageMap[pageNum - 1]
+    };
+  }
+}
+
+export const usePagination = (book, renderSettings) => {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [pageContent, setPageContent] = useState(null);
+  const [paginationData, setPaginationData] = useState(null);
+  const [calculating, setCalculating] = useState(false);
+
+  // Main calculation function - called on font/layout changes
+  const calculatePages = useCallback(async () => {
+    if (!book) return;
+    
+    setCalculating(true);
+    const engine = new PaginationEngine(book, renderSettings);
+    const result = await engine.calculateAllPages();
+    
+    setPaginationData(result);
+    setTotalPages(result.totalPages);
+    setCalculating(false);
+    
+    // Preserve current reading position after recalculation
+    if (currentPage <= result.totalPages) {
+      await loadPage(currentPage);
+    } else {
+      await loadPage(1);
+    }
+  }, [book, renderSettings]);
+
+  const loadPage = useCallback(async (pageNumber) => {
+    if (!paginationData || pageNumber < 1 || pageNumber > totalPages) {
+      return;
+    }
+    
+    const pageInfo = paginationData.getPageInfo(pageNumber);
+    const content = await book.getPageContent(pageInfo);
+    setPageContent(content);
+    setCurrentPage(pageNumber);
+  }, [paginationData, book, totalPages]);
+
+  const goToPage = useCallback((pageNumber) => {
+    const targetPage = Math.max(1, Math.min(pageNumber, totalPages));
+    loadPage(targetPage);
+  }, [loadPage, totalPages]);
+
+  return {
+    currentPage,
+    totalPages,
+    pageContent,
+    calculating,
+    calculatePages,
+    loadPage,
+    goToPage,
+    nextPage: () => goToPage(currentPage + 1),
+    prevPage: () => goToPage(currentPage - 1)
+  };
+};
+```
+
+### 3. Updated PageView Component
+```javascript
+const PageView = ({ pageContent, currentPage, totalPages, calculating, onGoToPage }) => {
+  const [goToInput, setGoToInput] = useState('');
+  const [showGoTo, setShowGoTo] = useState(false);
+
+  const handleGoToSubmit = (e) => {
+    e.preventDefault();
+    const pageNum = parseInt(goToInput);
+    if (pageNum && pageNum >= 1 && pageNum <= totalPages) {
+      onGoToPage(pageNum);
+      setGoToInput('');
+      setShowGoTo(false);
+    }
+  };
+
+  if (calculating) {
+    return (
+      <div className="page-view calculating">
+        <div className="page-content">
+          <div className="calculating-message">
+            <div className="spinner"></div>
+            <p>Calculating pages...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="page-view">
+      <div className="page-header">
+        <div className="page-info">
+          <span>Page {currentPage} of {totalPages}</span>
+          <button 
+            className="go-to-button"
+            onClick={() => setShowGoTo(!showGoTo)}
+          >
+            Go to Page
+          </button>
+        </div>
+        {showGoTo && (
+          <form className="go-to-form" onSubmit={handleGoToSubmit}>
+            <input
+              type="number"
+              min="1"
+              max={totalPages}
+              value={goToInput}
+              onChange={(e) => setGoToInput(e.target.value)}
+              placeholder={`1-${totalPages}`}
+              autoFocus
+            />
+            <button type="submit">Go</button>
+            <button type="button" onClick={() => setShowGoTo(false)}>Cancel</button>
+          </form>
+        )}
+      </div>
+      <div className="page-content" 
+           dangerouslySetInnerHTML={{ __html: pageContent }} />
+      <div className="page-footer">
+        <div className="progress-bar">
+          <div 
+            className="progress-fill" 
+            style={{ width: `${(currentPage / totalPages) * 100}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+};
+```
+
+### 4. Reader Component Integration
+**Architecture Note**: Font size is controlled by ReadingControls component, which renders above PageView component. PageView replaces the existing ChapterView component within the Reader layout.
+
+```javascript
+const Reader = ({bookData, onProgressUpdate}) => {
+  const { book, loadParsedBook } = useEPUB();
+  const [fontSize, setFontSize] = useState(16);  // Managed by ReadingControls
+  const [cssEnabled, setCssEnabled] = useState(true);
+  const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
+
+  // Create render settings object
+  const renderSettings = useMemo(() => ({
+    fontSize,
+    cssEnabled,
+    viewport
+  }), [fontSize, cssEnabled, viewport]);
+
+  // Initialize pagination hook
+  const {
+    currentPage,
+    totalPages,
+    pageContent,
+    calculating,
+    calculatePages,
+    goToPage,
+    nextPage,
+    prevPage
+  } = usePagination(book, renderSettings);
+
+  // Trigger recalculation when settings change
+  useEffect(() => {
+    if (book) {
+      calculatePages();
+    }
+  }, [book, calculatePages]);
+
+  // Handle viewport changes
+  useEffect(() => {
+    const handleResize = () => {
+      setViewport({ width: window.innerWidth, height: window.innerHeight });
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  return (
+    <div className="reader-container">
+      {/* ReadingControls manages fontSize state and passes it down */}
+      <ReadingControls
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onNext={nextPage}
+        onPrev={prevPage}
+        fontSize={fontSize}
+        onFontSizeChange={setFontSize}  // Triggers calculatePages() via useEffect
+        cssEnabled={cssEnabled}
+        onCssToggle={() => setCssEnabled(!cssEnabled)}
+      />
+      
+      {/* PageView replaces ChapterView for page-based display */}
+      <PageView
+        pageContent={pageContent}
+        currentPage={currentPage}
+        totalPages={totalPages}
+        calculating={calculating}
+        fontSize={fontSize}  // Applied to content styling
+        onGoToPage={goToPage}
+      />
+    </div>
+  );
+};
+```
+
+## Technical Challenges & Solutions
+
+### Challenge 1: Performance
+**Problem**: Calculating pages for entire book could be slow
+**Solution**: 
+- Lazy calculation (calculate ahead as user reads)
+- Web Workers for background calculation
+- Caching results until settings change
+
+### Challenge 2: Dynamic Content
+**Problem**: HTML content with images, tables may vary in height
+**Solution**:
+- Use actual DOM measurement, not text-based estimation
+- Handle images with placeholder dimensions
+- Account for CSS styling effects
+
+### Challenge 3: Chapter Boundaries
+**Problem**: Pages may span across chapters
+**Solution**:
+- Build unified content stream from all chapters
+- Maintain chapter metadata for navigation
+- Handle CSS transitions between chapters
+
+### Challenge 4: Reading Position Preservation
+**Problem**: Font changes invalidate current position
+**Solution**:
+- Track position by text offset, not page number
+- Recalculate nearest page after settings change
+- Smooth transition to new page position
+
+## Implementation Order
+
+1. **PaginationEngine.js** - Core calculation logic
+2. **Enhanced useEPUB.js** - Pagination state management  
+3. **Updated PageView.jsx** - Single page display
+4. **Reader integration** - Connect all components
+5. **Performance optimization** - Caching, lazy loading
+6. **Testing & refinement** - Various books, settings
+
+## Benefits of This Approach
+
+✅ **Accurate Page Counts**: Based on actual rendering
+✅ **Responsive**: Adapts to font/layout changes automatically  
+✅ **Efficient**: Only renders current page content
+✅ **Familiar UX**: Traditional book-like pagination
+✅ **Flexible**: Works with any EPUB content structure
+
+## Files to Modify/Create
+
+### New Files:
+- `/shared/hooks/usePagination.js` - Contains PaginationEngine class and hook logic
+
+### Modified Files:
+- `/components/PageView/PageView.jsx` - Complete page display with go-to-page feature
+- `/components/Reader/Reader.jsx` - Integrate usePagination hook
+- `/components/Controls/ReadingControls.jsx` - Update for page-based navigation
+
+### Key Features Added:
+✅ **Go-to-Page**: Input field to jump to specific page number
+✅ **calculatePages()**: Dedicated function called on font/layout changes
+✅ **Separate Hook**: usePagination independent from useEPUB
+✅ **Progress Bar**: Visual progress indicator in page footer
+✅ **Calculating State**: Shows loading during page recalculation
+
+This approach transforms the chapter-based reader into a true paginated book experience while maintaining compatibility with existing EPUB parsing and rendering systems.

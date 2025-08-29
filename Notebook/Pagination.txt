@@ -1,0 +1,53 @@
+Using ChatGPT Study and Learn mode for research
+
+It's not as simple as splitting a text file every 400 words.
+
+First: EPUB files don’t actually have “pages” inside them.
+They’re basically a ZIP archive of HTML, CSS, images, and metadata. So when you open an EPUB, the “book” is just a bunch of HTML files styled with CSS. The concept of pages is created by the eReader itself, not the EPUB.
+
+1. Load the content
+- The eReader parses the XHTML/HTML files inside the EPUB
+- CSS is applied so text looks the way the publisher intended
+
+2. Render into a "viewport"
+- The eReader takes the styled HTML and lays it out into A
+rectangle (the screen size or a "page view" area)
+
+3. Pagination
+- The eReader takes the flowing content and slices it into screen-sized chunks
+- These chunks depend on the device's screen size, font size, line spacing, margins, etc
+
+Reflowable pagination: Text is continuously laid out then "cut" at screen boundaries
+
+Synthetic page numbers: Page 123 of 320, calculated divisions of the text content
+
+To paginate: measure the viewport, lay out the text, and split it into chunks. Recalculate whenever the user changes font size or (for mobile) rotates the device
+
+Function idea: calculatePages
+
+Book-level index to show book-wide page numbers (1...N)
+
+
+Divide the entire book's text into small, fixed size "atoms"
+- Kindle locations = every 128 bytes of raw content or every 1000 characters or 300 words = 1 locations
+- Locations are stable, they don't care about font, device, or layout
+
+20 locations = 1 page
+
+---
+In this app, how is the text of the book returned? Do we grab 
+  the html content from useEpub? Is this content grabbed chapter 
+  by chapter or is the entire text of the book returned all at 
+  once?
+- EPUBParser.getChapter(index) is called for each chapter. It reads the XHTML file for that chapter from the EPUB zip. It returns content which is the full HTML of that chapter's <body> tag.
+
+We're currently using a ChapterView component that displays text one spine chapter at a time
+
+EPUBParser.getChapter(index) returns an object...
+{
+    title:
+    content: // Chapter HTML content as a string
+    css: [...] // Each object in array has an href pointing to the css file and content
+    combinedCSS: "" //All CSS from the css array combined into a single string, so that it can be injected into a <style> tag
+}
+

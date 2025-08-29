@@ -1,381 +1,393 @@
 /**
- * usePagination Hook
+ * usePagination Hook - Complete Book Pagination System
  * 
- * Manages pagination of EPUB content, splitting chapters into pages
- * based on viewport dimensions, font size, and line height.
+ * This hook provides page-based navigation for EPUB books, calculating pages dynamically
+ * based on font size, viewport dimensions, and CSS settings. It replaces chapter-based
+ * navigation with true page-based reading experience.
  * 
- * This hook handles:
- * 1. Calculating page breaks for content
- * 2. Tracking current page position
- * 3. Navigation between pages
- * 4. Recalculating pages on resize/font change
- * 5. Mapping between chapters and pages
+ * Key Features:
+ * - Dynamic page calculation based on actual content dimensions
+ * - Recalculates when font size or layout settings change
+ * - Preserves reading position during recalculation
+ * - Provides go-to-page functionality
+ * - Handles content that spans multiple visual pages
+ * 
+ * @example
+ * const {
+ *   currentPage,
+ *   totalPages,
+ *   pageContent,
+ *   calculating,
+ *   calculatePages,
+ *   goToPage
+ * } = usePagination(book, renderSettings);
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 
-export const usePagination = ({
-  chapters = [],
-  currentChapterIndex = 0,
-  fontSize = 16,
-  lineHeight = 1.8,
-  containerHeight = 600,
-  containerWidth = 720
-}) => {
-  // State for pagination
-  const [pages, setPages] = useState([]);
-  const [currentPage, setCurrentPage] = useState(0);
-  const [totalPages, setTotalPages] = useState(0);
-  const [pageMap, setPageMap] = useState({}); // Maps page numbers to chapter/position
-  const [isCalculating, setIsCalculating] = useState(false);
-  
-  // Cache for processed chapters
-  const processedChapters = useRef([]);
+/**
+ * PaginationEngine Class
+ * 
+ * Core engine that calculates how content should be split into pages.
+ * Uses DOM measurement to determine how much content fits on each screen.
+ */
+class PaginationEngine {
+  /**
+   * Initialize PaginationEngine
+   * 
+   * @param {Object} book - Parsed EPUB book object with spine and getChapter method
+   * @param {Object} renderSettings - Current rendering configuration
+   * @param {number} renderSettings.fontSize - Font size in pixels
+   * @param {boolean} renderSettings.cssEnabled - Whether EPUB CSS is applied
+   * @param {Object} renderSettings.viewport - Viewport dimensions
+   * @param {number} renderSettings.viewport.width - Viewport width in pixels
+   * @param {number} renderSettings.viewport.height - Viewport height in pixels
+   */
+  constructor(book, renderSettings) {
+    this.book = book;
+    this.renderSettings = renderSettings;
+    this.pageMap = []; // Array of page info objects
+    this.totalPages = 0;
+    this.measurementContainer = null; // DOM element for measuring content
+  }
 
   /**
-   * Calculate approximate characters per page
-   * Based on viewport size and font settings
+   * Create invisible DOM container for measuring content dimensions
+   * 
+   * Creates a hidden div with the same styling as the actual reading area.
+   * This allows accurate measurement of how much content fits on each page.
+   * 
+   * @returns {HTMLDivElement} The measurement container element
    */
-  const calculateCharsPerPage = useCallback(() => {
-    // Approximate calculations based on typical character widths
-    const avgCharWidth = fontSize * 0.5; // Rough estimate
-    const charsPerLine = Math.floor(containerWidth / avgCharWidth);
-    const lineHeightPx = fontSize * lineHeight;
-    const linesPerPage = Math.floor(containerHeight / lineHeightPx);
-    const charsPerPage = charsPerLine * linesPerPage;
+  createMeasurementContainer() {
+    if (this.measurementContainer) {
+      return this.measurementContainer;
+    }
+
+    // Create invisible container with same styles as reading area
+    const container = document.createElement('div');
+    container.style.cssText = `
+      position: absolute;
+      top: -9999px;                                              /* Hide off-screen */
+      left: -9999px;
+      width: ${this.renderSettings.viewport.width - 400}px;      /* Account for sidebars */
+      font-size: ${this.renderSettings.fontSize}px;             /* Match current font size */
+      font-family: inherit;                                      /* Match reading area font */
+      line-height: 1.6;                                         /* Match reading area spacing */
+      visibility: hidden;                                       /* Extra hiding */
+      pointer-events: none;                                     /* No user interaction */
+    `;
     
-    // Account for padding and margins (reduce by ~15%)
-    return Math.floor(charsPerPage * 0.85);
-  }, [fontSize, lineHeight, containerHeight, containerWidth]);
+    document.body.appendChild(container);
+    this.measurementContainer = container;
+    return container;
+  }
 
   /**
-   * Split content into pages
-   * This is a simplified version - in production, you'd want more sophisticated
-   * text measurement using actual DOM rendering
+   * Clean up measurement container to prevent memory leaks
+   * 
+   * Removes the measurement container from DOM when pagination calculation is complete.
    */
-  const paginateContent = useCallback(async () => {
-    if (chapters.length === 0) {
-      console.log('No chapters to paginate');
+  cleanupMeasurementContainer() {
+    if (this.measurementContainer && this.measurementContainer.parentNode) {
+      this.measurementContainer.parentNode.removeChild(this.measurementContainer);
+      this.measurementContainer = null;
+    }
+  }
+
+  /**
+   * Calculate total pages for entire book
+   * 
+   * Main pagination algorithm:
+   * 1. Create measurement container with current settings
+   * 2. Iterate through all chapters in book spine
+   * 3. Measure how much content fits per page height
+   * 4. Build pageMap with chapter boundaries and page breaks
+   * 5. Return pagination data for navigation
+   * 
+   * @returns {Promise<Object>} Pagination result object
+   * @returns {number} returns.totalPages - Total number of pages in book
+   * @returns {Array} returns.pageMap - Array of page information objects
+   * @returns {Function} returns.getPageInfo - Function to get page info by number
+   */
+  async calculateAllPages() {
+    // Validate book data
+    if (!this.book || !this.book.spine || this.book.spine.length === 0) {
+      return {
+        totalPages: 0,
+        pageMap: [],
+        getPageInfo: () => null
+      };
+    }
+
+    try {
+      // Setup measurement environment
+      const container = this.createMeasurementContainer();
+      const pageHeight = this.renderSettings.viewport.height - 120; // Account for controls and padding
+      
+      this.pageMap = [];
+      let currentPage = 1;
+
+      // Process each chapter in the book
+      for (let chapterIndex = 0; chapterIndex < this.book.spine.length; chapterIndex++) {
+        // Get chapter content from EPUB
+        const chapter = await this.book.getChapter(chapterIndex);
+        
+        if (!chapter || !chapter.content) continue;
+
+        // Render chapter content in measurement container to get actual height
+        container.innerHTML = chapter.content;
+        
+        const contentHeight = container.scrollHeight; // Total content height
+        const pagesInChapter = Math.max(1, Math.ceil(contentHeight / pageHeight)); // How many pages needed
+
+        // Create page entries for this chapter
+        for (let pageInChapter = 0; pageInChapter < pagesInChapter; pageInChapter++) {
+          this.pageMap.push({
+            pageNumber: currentPage,
+            chapterIndex,
+            pageInChapter,                                    // Page number within this chapter
+            startOffset: pageInChapter * pageHeight,         // Pixel offset where page starts
+            endOffset: (pageInChapter + 1) * pageHeight,     // Pixel offset where page ends
+            chapterTitle: this.book.spine[chapterIndex].title || `Chapter ${chapterIndex + 1}`
+          });
+          currentPage++;
+        }
+      }
+
+      this.totalPages = currentPage - 1;
+      this.cleanupMeasurementContainer();
+
+      return {
+        totalPages: this.totalPages,
+        pageMap: this.pageMap,
+        /**
+         * Get page information by page number
+         * @param {number} pageNum - Page number (1-based)
+         * @returns {Object|null} Page info object or null if invalid
+         */
+        getPageInfo: (pageNum) => {
+          if (pageNum < 1 || pageNum > this.totalPages) return null;
+          return this.pageMap[pageNum - 1]; // Convert to 0-based array index
+        }
+      };
+    } catch (error) {
+      console.error('Error calculating pages:', error);
+      this.cleanupMeasurementContainer();
+      return {
+        totalPages: 0,
+        pageMap: [],
+        getPageInfo: () => null
+      };
+    }
+  }
+
+  /**
+   * Extract content for a specific page
+   * 
+   * Takes a page info object and returns the HTML content that should be
+   * displayed for that page. Handles content that spans partial chapters.
+   * 
+   * @param {Object} pageInfo - Page information object from pageMap
+   * @param {number} pageInfo.chapterIndex - Which chapter this page belongs to
+   * @param {number} pageInfo.pageInChapter - Page number within the chapter
+   * @param {number} pageInfo.startOffset - Start pixel offset for content
+   * @param {number} pageInfo.endOffset - End pixel offset for content
+   * @returns {Promise<Object|null>} Page content object with HTML and CSS
+   */
+  async getPageContent(pageInfo) {
+    if (!pageInfo || !this.book) return null;
+
+    try {
+      // Get full chapter content
+      const chapter = await this.book.getChapter(pageInfo.chapterIndex);
+      if (!chapter || !chapter.content) return null;
+
+      // Create temporary container to work with content
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = chapter.content;
+      
+      const contentHeight = tempDiv.scrollHeight;
+      const pageHeight = this.renderSettings.viewport.height - 120;
+
+      // If this is the first page and content fits entirely, return full content
+      if (pageInfo.pageInChapter === 0 && contentHeight <= pageHeight) {
+        return {
+          content: chapter.content,
+          combinedCSS: chapter.combinedCSS,
+          chapterTitle: pageInfo.chapterTitle
+        };
+      }
+
+      // For pages that need content slicing, create a clipped version
+      const startOffset = pageInfo.startOffset;
+      const endOffset = pageInfo.endOffset;
+      
+      // Clone content and apply CSS clipping to show only the relevant portion
+      const clonedDiv = tempDiv.cloneNode(true);
+      clonedDiv.style.cssText = `
+        position: absolute;
+        top: -${startOffset}px;        /* Offset to show correct portion */
+        height: ${pageHeight}px;       /* Limit visible height */
+        overflow: hidden;              /* Hide content outside page bounds */
+      `;
+
+      return {
+        content: clonedDiv.innerHTML,
+        combinedCSS: chapter.combinedCSS,
+        chapterTitle: pageInfo.chapterTitle
+      };
+    } catch (error) {
+      console.error('Error getting page content:', error);
+      return null;
+    }
+  }
+}
+
+/**
+ * Custom hook for book pagination
+ * 
+ * Provides page-based navigation system for EPUB books. Calculates pages
+ * dynamically based on current font size and viewport dimensions.
+ * 
+ * @param {Object} book - Parsed EPUB book object
+ * @param {Object} renderSettings - Current rendering settings (font, viewport, etc.)
+ * @returns {Object} Pagination state and control functions
+ */
+export const usePagination = (book, renderSettings) => {
+  // Core pagination state
+  const [currentPage, setCurrentPage] = useState(1);          // Current page number (1-based)
+  const [totalPages, setTotalPages] = useState(0);            // Total pages in book
+  const [pageContent, setPageContent] = useState(null);       // Current page's HTML content
+  const [paginationData, setPaginationData] = useState(null); // Pagination engine and data
+  const [calculating, setCalculating] = useState(false);      // Whether pages are being calculated
+
+  /**
+   * Calculate pages for entire book
+   * 
+   * Main function that triggers pagination calculation. Called when:
+   * - Book is loaded
+   * - Font size changes
+   * - Viewport size changes
+   * - CSS settings change
+   * 
+   * Preserves current reading position after recalculation when possible.
+   */
+  const calculatePages = useCallback(async () => {
+    if (!book || !renderSettings) return;
+    
+    setCalculating(true);
+    try {
+      // Create new pagination engine with current settings
+      const engine = new PaginationEngine(book, renderSettings);
+      const result = await engine.calculateAllPages();
+      
+      // Store pagination data with engine instance for content extraction
+      setPaginationData({ ...result, engine });
+      setTotalPages(result.totalPages);
+      
+      // Try to preserve current reading position
+      if (currentPage <= result.totalPages && result.totalPages > 0) {
+        // Current page is still valid after recalculation
+        const pageInfo = result.getPageInfo(currentPage);
+        if (pageInfo) {
+          const content = await engine.getPageContent(pageInfo);
+          setPageContent(content);
+        }
+      } else if (result.totalPages > 0) {
+        // Current page is beyond new total, go to first page
+        const pageInfo = result.getPageInfo(1);
+        if (pageInfo) {
+          const content = await engine.getPageContent(pageInfo);
+          setPageContent(content);
+          setCurrentPage(1);
+        }
+      }
+    } catch (error) {
+      console.error('Error in calculatePages:', error);
+    } finally {
+      setCalculating(false);
+    }
+  }, [book, renderSettings, currentPage]);
+
+  /**
+   * Load specific page by page number
+   * 
+   * @param {number} pageNumber - Page number to load (1-based)
+   */
+  const loadPage = useCallback(async (pageNumber) => {
+    // Validate page number
+    if (!paginationData || pageNumber < 1 || pageNumber > totalPages) {
       return;
     }
     
-    setIsCalculating(true);
-    console.log('Starting pagination with chapters:', chapters.length, 'container:', { containerHeight, containerWidth });
-    
-    // Debug: Log the chapters array structure
-    console.log('Chapters array content:', chapters.map((ch, i) => ({
-      index: i,
-      hasContent: !!ch?.content,
-      contentLength: ch?.content?.length,
-      contentPreview: ch?.content?.substring(0, 50),
-      loaded: ch?.loaded,
-      title: ch?.title
-    })));
-    
-    const charsPerPage = calculateCharsPerPage();
-    console.log('Calculated chars per page:', charsPerPage);
-    
-    const newPages = [];
-    const newPageMap = {};
-    let globalPageIndex = 0;
-    
-    // Process each chapter
-    chapters.forEach((chapter, chapterIndex) => {
-      if (!chapter) {
-        console.log('Skipping missing chapter:', chapterIndex);
-        return;
+    try {
+      // Get page info and extract content
+      const pageInfo = paginationData.getPageInfo(pageNumber);
+      if (pageInfo) {
+        const content = await paginationData.engine.getPageContent(pageInfo);
+        setPageContent(content);
+        setCurrentPage(pageNumber);
       }
-      
-      // Handle chapters that haven't been loaded yet
-      if (!chapter.content || !chapter.loaded) {
-        console.log('Chapter not loaded yet, creating placeholder page:', chapterIndex);
-        // Create a placeholder page for unloaded chapters
-        newPages.push({
-          pageNumber: globalPageIndex,
-          chapterIndex: chapterIndex,
-          chapterTitle: chapter.title || `Chapter ${chapterIndex + 1}`,
-          startOffset: 0,
-          endOffset: 0,
-          content: `<div class="loading-chapter"><p>Loading ${chapter.title || `Chapter ${chapterIndex + 1}`}...</p></div>`,
-          textContent: `Loading ${chapter.title}...`,
-          isFirstPageOfChapter: true,
-          isLastPageOfChapter: true,
-          isPlaceholder: true
-        });
-        
-        newPageMap[globalPageIndex] = {
-          chapter: chapterIndex,
-          pageInChapter: 0,
-          totalPagesInChapter: 1
-        };
-        
-        globalPageIndex++;
-        return;
-      }
-      
-      // For HTML content, we need a different approach
-      // Strip HTML tags for character counting, but preserve HTML for display
-      const textContent = chapter.content.replace(/<[^>]*>/g, '');
-      const chapterLength = textContent.length;
-      
-      // Debug: Log the content processing
-      console.log(`Chapter ${chapterIndex + 1} content processing:`, {
-        originalHTMLLength: chapter.content?.length,
-        htmlPreview: chapter.content?.substring(0, 100),
-        strippedTextLength: chapterLength,
-        textPreview: textContent.substring(0, 100),
-        charsPerPage: charsPerPage
-      });
-      
-      // Calculate pages, but ensure minimum of 1 page per chapter
-      const pagesInChapter = Math.max(1, Math.ceil(chapterLength / charsPerPage));
-      
-      console.log(`Chapter ${chapterIndex + 1}: ${chapterLength} chars, ${pagesInChapter} pages`);
-      
-      // For now, split HTML content roughly by character count
-      // This is a simplified approach - ideally we'd parse and split at proper HTML boundaries
-      const htmlContent = chapter.content;
-      
-      // Create pages for this chapter
-      for (let pageInChapter = 0; pageInChapter < pagesInChapter; pageInChapter++) {
-        let pageContent;
-        
-        if (pagesInChapter === 1) {
-          // Single page - use full content
-          pageContent = htmlContent;
-        } else {
-          // Multiple pages - split the text content and try to preserve some HTML structure
-          const startChar = pageInChapter * charsPerPage;
-          const endChar = Math.min(startChar + charsPerPage, chapterLength);
-          const pageText = textContent.substring(startChar, endChar);
-          
-          // Simple approach: wrap the text chunk in basic HTML
-          // In production, you'd want sophisticated HTML splitting
-          pageContent = `<div class="page-content-chunk">${pageText}</div>`;
-          
-          // If it's the first page, try to include any chapter title from original HTML
-          if (pageInChapter === 0) {
-            const titleMatch = htmlContent.match(/<h[1-6][^>]*>.*?<\/h[1-6]>/i);
-            if (titleMatch) {
-              pageContent = titleMatch[0] + pageContent;
-            }
-          }
-        }
-        
-        newPages.push({
-          pageNumber: globalPageIndex,
-          chapterIndex: chapterIndex,
-          chapterTitle: chapter.title || `Chapter ${chapterIndex + 1}`,
-          startOffset: pageInChapter * charsPerPage,
-          endOffset: Math.min((pageInChapter + 1) * charsPerPage, chapterLength),
-          content: pageContent, // This is now HTML content
-          textContent: textContent.substring(pageInChapter * charsPerPage, Math.min((pageInChapter + 1) * charsPerPage, chapterLength)),
-          isFirstPageOfChapter: pageInChapter === 0,
-          isLastPageOfChapter: pageInChapter === pagesInChapter - 1
-        });
-        
-        newPageMap[globalPageIndex] = {
-          chapter: chapterIndex,
-          pageInChapter: pageInChapter,
-          totalPagesInChapter: pagesInChapter
-        };
-        
-        globalPageIndex++;
-      }
-    });
-    
-    console.log('Pagination complete. Total pages:', globalPageIndex);
-    
-    setPages(newPages);
-    setPageMap(newPageMap);
-    setTotalPages(newPages.length);
-    setIsCalculating(false);
-    
-    return newPages;
-  }, [chapters, calculateCharsPerPage, containerHeight, containerWidth]);
+    } catch (error) {
+      console.error('Error loading page:', error);
+    }
+  }, [paginationData, totalPages]);
 
   /**
-   * Navigate to a specific page
+   * Navigate to specific page with bounds checking
+   * 
+   * Public API for page navigation. Ensures page number is within valid range.
+   * 
+   * @param {number} pageNumber - Target page number
    */
   const goToPage = useCallback((pageNumber) => {
-    if (pageNumber >= 0 && pageNumber < totalPages) {
-      setCurrentPage(pageNumber);
-      return true;
+    // Clamp page number to valid range
+    const targetPage = Math.max(1, Math.min(pageNumber, totalPages));
+    if (targetPage !== currentPage) {
+      loadPage(targetPage);
     }
-    return false;
-  }, [totalPages]);
+  }, [loadPage, totalPages, currentPage]);
 
   /**
    * Navigate to next page
    */
   const nextPage = useCallback(() => {
-    console.log('nextPage called, currentPage:', currentPage, 'totalPages:', totalPages);
-    const success = goToPage(currentPage + 1);
-    console.log('nextPage result:', success, 'new currentPage should be:', currentPage + 1);
-    return success;
-  }, [currentPage, goToPage, totalPages]);
+    if (currentPage < totalPages) {
+      goToPage(currentPage + 1);
+    }
+  }, [currentPage, totalPages, goToPage]);
 
   /**
    * Navigate to previous page
    */
   const prevPage = useCallback(() => {
-    console.log('prevPage called, currentPage:', currentPage, 'totalPages:', totalPages);
-    const success = goToPage(currentPage - 1);
-    console.log('prevPage result:', success, 'new currentPage should be:', currentPage - 1);
-    return success;
-  }, [currentPage, goToPage, totalPages]);
+    if (currentPage > 1) {
+      goToPage(currentPage - 1);
+    }
+  }, [currentPage, goToPage]);
 
-  /**
-   * Jump to a specific chapter
-   */
-  const goToChapter = useCallback((chapterIndex) => {
-    // Find the first page of the specified chapter
-    const targetPage = pages.findIndex(page => page.chapterIndex === chapterIndex);
-    if (targetPage !== -1) {
-      setCurrentPage(targetPage);
-      return true;
-    }
-    return false;
-  }, [pages]);
+  // Computed navigation state
+  const canGoNext = useMemo(() => currentPage < totalPages, [currentPage, totalPages]);
+  const canGoPrev = useMemo(() => currentPage > 1, [currentPage]);
 
-  /**
-   * Get current page content with proper HTML structure
-   */
-  const getCurrentPageContent = useCallback(() => {
-    console.log('getCurrentPageContent called:', { currentPage, totalPages, pagesLength: pages.length });
-    
-    if (pages.length === 0) {
-      console.log('No pages available');
-      return {
-        content: 'Loading pages...',
-        chapterTitle: 'Loading',
-        pageInfo: {
-          current: 1,
-          total: 1,
-          chapterIndex: 0,
-          isFirstPage: true,
-          isLastPage: true
-        }
-      };
-    }
-    
-    const page = pages[currentPage];
-    if (!page) {
-      console.log('Page not found at index:', currentPage);
-      return {
-        content: `Page ${currentPage + 1} not found`,
-        chapterTitle: 'Error',
-        pageInfo: {
-          current: currentPage + 1,
-          total: totalPages,
-          chapterIndex: 0,
-          isFirstPage: true,
-          isLastPage: true
-        }
-      };
-    }
-    
-    const chapter = chapters[page.chapterIndex];
-    if (!chapter) {
-      console.log('Chapter not found at index:', page.chapterIndex);
-      return {
-        content: `Chapter ${page.chapterIndex + 1} not found`,
-        chapterTitle: page.chapterTitle || 'Unknown Chapter',
-        pageInfo: {
-          current: currentPage + 1,
-          total: totalPages,
-          chapterIndex: page.chapterIndex,
-          isFirstPage: page.isFirstPageOfChapter,
-          isLastPage: page.isLastPageOfChapter
-        }
-      };
-    }
-    
-    console.log('Returning page content for page:', currentPage + 1, 'of', totalPages);
-    
-    // In a real implementation, you'd slice the actual HTML content
-    // preserving tags and structure. This is simplified.
-    return {
-      content: page.content,
-      chapterTitle: page.chapterTitle,
-      pageInfo: {
-        current: currentPage + 1,
-        total: totalPages,
-        chapterIndex: page.chapterIndex,
-        isFirstPage: page.isFirstPageOfChapter,
-        isLastPage: page.isLastPageOfChapter
-      }
-    };
-  }, [currentPage, pages, chapters, totalPages]);
-
-  /**
-   * Calculate reading progress as percentage
-   */
-  const getProgress = useCallback(() => {
-    if (totalPages === 0) return 0;
-    return ((currentPage + 1) / totalPages) * 100;
-  }, [currentPage, totalPages]);
-
-  /**
-   * Recalculate pages when chapters or settings change
-   */
-  useEffect(() => {
-    if (chapters.length > 0) {
-      console.log('Recalculating pages due to changes');
-      paginateContent();
-    }
-  }, [chapters, fontSize, lineHeight, containerHeight, containerWidth, paginateContent]);
-  
-  /**
-   * Ensure currentPage stays within bounds when totalPages changes
-   */
-  useEffect(() => {
-    if (totalPages > 0 && currentPage >= totalPages) {
-      console.log('Adjusting currentPage from', currentPage, 'to', totalPages - 1);
-      setCurrentPage(totalPages - 1);
-    }
-  }, [totalPages, currentPage]);
-
-  /**
-   * Update current page when switching chapters via TOC
-   */
-  useEffect(() => {
-    if (pages.length > 0 && currentChapterIndex !== undefined) {
-      const currentPageData = pages[currentPage];
-      if (currentPageData && currentPageData.chapterIndex !== currentChapterIndex) {
-        goToChapter(currentChapterIndex);
-      }
-    }
-  }, [currentChapterIndex, pages, currentPage, goToChapter]);
-
+  // Return pagination interface
   return {
-    // Page data
-    pages,
-    currentPage,
-    totalPages,
-    pageMap,
+    // Current state
+    currentPage,        // Current page number (1-based)
+    totalPages,         // Total number of pages in book
+    pageContent,        // HTML content for current page
+    calculating,        // Whether pagination is being calculated
     
-    // Navigation
-    nextPage,
-    prevPage,
-    goToPage,
-    goToChapter,
+    // Control functions
+    calculatePages,     // Recalculate all pages (call when settings change)
+    loadPage,          // Load specific page by number
+    goToPage,          // Navigate to specific page (public API)
+    nextPage,          // Go to next page
+    prevPage,          // Go to previous page
     
-    // Content
-    getCurrentPageContent,
-    
-    // Status
-    isCalculating,
-    progress: getProgress(),
-    
-    // Current position info
-    currentChapter: pages[currentPage]?.chapterIndex || 0,
-    currentChapterTitle: pages[currentPage]?.chapterTitle || '',
-    isFirstPage: currentPage === 0,
-    isLastPage: currentPage === totalPages - 1,
-    pagesInCurrentChapter: pageMap[currentPage]?.totalPagesInChapter || 0,
-    pageInChapter: pageMap[currentPage]?.pageInChapter || 0
+    // Navigation state
+    canGoNext,         // Whether next page navigation is possible
+    canGoPrev          // Whether previous page navigation is possible
   };
 };
-
-export default usePagination;
