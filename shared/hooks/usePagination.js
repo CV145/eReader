@@ -1,14 +1,14 @@
 /**
- * usePagination Hook - Simple Text-Based Pagination
+ * usePagination Hook - Character-based Pagination with Binary Search
  * 
- * A simplified approach that splits content into pages based on text length
- * and container overflow detection.
+ * Splits book content into pages by finding the exact character position
+ * where content overflows the visible area.
  * 
  * Key Features:
- * - Simple text-based page splitting
- * - Maintains HTML structure
- * - Dynamic viewport and font size support
- * - Reliable page boundaries
+ * - Binary search to find exact overflow point
+ * - Works with any HTML structure
+ * - Accurate page boundaries
+ * - Handles entire book pagination
  */
 
 import { useState, useCallback, useEffect, useMemo } from 'react';
@@ -39,106 +39,139 @@ function createMeasurementContainer(viewport, fontSize) {
 }
 
 /**
- * Check if container content overflows
+ * Check if any content overflows the container
  */
-function isOverflowing(container) {
-  return container.scrollHeight > container.clientHeight;
+function hasOverflow(container) {
+  // Get all text nodes and check their positions
+  const walker = document.createTreeWalker(
+    container,
+    NodeFilter.SHOW_TEXT,
+    null,
+    false
+  );
+  
+  const containerBottom = container.getBoundingClientRect().bottom;
+  let node;
+  
+  while (node = walker.nextNode()) {
+    if (node.nodeValue && node.nodeValue.trim()) {
+      const range = document.createRange();
+      range.selectNodeContents(node);
+      const rect = range.getBoundingClientRect();
+      if (rect.bottom > containerBottom) {
+        return true;
+      }
+    }
+  }
+  
+  return false;
 }
 
 /**
- * Split HTML content into pages
+ * Binary search to find how much text fits on a page
+ */
+function findPageBreak(htmlContent, container) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(htmlContent, 'text/html');
+  const textContent = doc.body.textContent || '';
+  
+  if (!textContent) return htmlContent;
+  
+  // Binary search for the maximum text that fits
+  let low = 0;
+  let high = textContent.length;
+  let bestFit = 0;
+  
+  while (low <= high) {
+    const mid = Math.floor((low + high) / 2);
+    const testText = textContent.substring(0, mid);
+    
+    // Wrap in a paragraph for testing
+    container.innerHTML = `<div>${testText}</div>`;
+    
+    if (!hasOverflow(container)) {
+      bestFit = mid;
+      low = mid + 1;
+    } else {
+      high = mid - 1;
+    }
+  }
+  
+  return bestFit;
+}
+
+/**
+ * Split chapter into pages using binary search
  */
 async function paginateChapter(chapterContent, viewport, fontSize) {
   const pages = [];
   const container = createMeasurementContainer(viewport, fontSize);
   
-  // Parse the HTML content
+  // Parse and get text content
   const parser = new DOMParser();
   const doc = parser.parseFromString(chapterContent, 'text/html');
-  const allElements = Array.from(doc.body.children);
+  const fullText = doc.body.textContent || '';
   
-  if (allElements.length === 0) {
-    // If no elements, treat as plain text
-    container.innerHTML = chapterContent;
-    if (!isOverflowing(container)) {
-      pages.push(chapterContent);
-    } else {
-      // Split by estimated characters per page
-      const charsPerPage = Math.floor((viewport.height - 60) * (viewport.width - 400) / (fontSize * 2));
-      const text = doc.body.textContent;
-      for (let i = 0; i < text.length; i += charsPerPage) {
-        pages.push(`<p>${text.substring(i, i + charsPerPage)}</p>`);
-      }
-    }
+  console.log(`DEBUG: Chapter has ${fullText.length} characters`);
+  
+  if (!fullText) {
     document.body.removeChild(container);
-    return pages;
+    return [chapterContent]; // Return original if no text
   }
   
-  let currentPageElements = [];
-  let currentPageHTML = '';
+  let currentPosition = 0;
+  let pageCount = 0;
+  const maxPages = 1000; // Safety limit
   
-  console.log(`DEBUG: Processing ${allElements.length} top-level elements`);
-  
-  for (let i = 0; i < allElements.length; i++) {
-    const element = allElements[i];
-    const elementHTML = element.outerHTML;
+  while (currentPosition < fullText.length && pageCount < maxPages) {
+    // Get remaining text
+    const remainingText = fullText.substring(currentPosition);
     
-    // Try adding this element to the current page
-    const testHTML = currentPageHTML + elementHTML;
-    container.innerHTML = testHTML;
+    // Find how much fits on this page
+    container.innerHTML = `<div>${remainingText}</div>`;
     
-    if (isOverflowing(container)) {
-      // This element causes overflow
-      
-      if (currentPageHTML) {
-        // Save current page if it has content
-        pages.push(currentPageHTML);
-        currentPageHTML = '';
-      }
-      
-      // Check if this single element fits on a page
-      container.innerHTML = elementHTML;
-      
-      if (!isOverflowing(container)) {
-        // Element fits on its own page
-        currentPageHTML = elementHTML;
-      } else {
-        // Single element is too large, need to split it
-        console.log('DEBUG: Large element needs splitting:', element.tagName);
-        
-        // For large elements, split by text content
-        const textContent = element.textContent;
-        const charsPerPage = Math.floor((viewport.height - 60) * (viewport.width - 400) / (fontSize * 2.5));
-        
-        if (textContent.length > charsPerPage) {
-          // Split text into multiple pages
-          for (let j = 0; j < textContent.length; j += charsPerPage) {
-            const pageText = textContent.substring(j, j + charsPerPage);
-            const pageHTML = `<${element.tagName.toLowerCase()} class="${element.className}">${pageText}</${element.tagName.toLowerCase()}>`;
-            pages.push(pageHTML);
-          }
-        } else {
-          // Just add it even if it overflows slightly
-          pages.push(elementHTML);
-        }
-        
-        currentPageHTML = '';
-      }
-    } else {
-      // Element fits, add to current page
-      currentPageHTML = testHTML;
+    if (!hasOverflow(container)) {
+      // All remaining text fits on one page
+      pages.push(`<div>${remainingText}</div>`);
+      break;
     }
-  }
-  
-  // Add any remaining content as the last page
-  if (currentPageHTML) {
-    pages.push(currentPageHTML);
+    
+    // Binary search to find the break point
+    let low = 0;
+    let high = remainingText.length;
+    let bestFit = 0;
+    
+    while (low <= high) {
+      const mid = Math.floor((low + high) / 2);
+      const testText = remainingText.substring(0, mid);
+      container.innerHTML = `<div>${testText}</div>`;
+      
+      if (!hasOverflow(container)) {
+        bestFit = mid;
+        low = mid + 1;
+      } else {
+        high = mid - 1;
+      }
+    }
+    
+    if (bestFit === 0) {
+      // Can't fit any text, force at least some content
+      bestFit = Math.min(100, remainingText.length);
+    }
+    
+    // Add this page
+    const pageText = remainingText.substring(0, bestFit);
+    pages.push(`<div>${pageText}</div>`);
+    currentPosition += bestFit;
+    pageCount++;
+    
+    console.log(`DEBUG: Page ${pageCount} contains ${bestFit} characters`);
   }
   
   // Clean up
   document.body.removeChild(container);
   
-  console.log(`DEBUG: Created ${pages.length} pages`);
+  console.log(`DEBUG: Created ${pages.length} pages from ${fullText.length} characters`);
   
   return pages;
 }
@@ -241,7 +274,7 @@ export const usePagination = (book, renderSettings) => {
       const nextPageData = pages[nextPageNum - 1];
       setCurrentPage(nextPageNum);
       setPageContent({
-        content: nextPageData.content || nextPageData, // Handle both old and new format
+        content: nextPageData.content || nextPageData,
         combinedCSS: nextPageData.combinedCSS || chapterData?.combinedCSS,
         chapterTitle: nextPageData.chapterTitle || chapterData?.title || 'Chapter 1'
       });
@@ -257,7 +290,7 @@ export const usePagination = (book, renderSettings) => {
       const prevPageData = pages[prevPageNum - 1];
       setCurrentPage(prevPageNum);
       setPageContent({
-        content: prevPageData.content || prevPageData, // Handle both old and new format
+        content: prevPageData.content || prevPageData,
         combinedCSS: prevPageData.combinedCSS || chapterData?.combinedCSS,
         chapterTitle: prevPageData.chapterTitle || chapterData?.title || 'Chapter 1'
       });
@@ -273,7 +306,7 @@ export const usePagination = (book, renderSettings) => {
       const pageData = pages[targetPage - 1];
       setCurrentPage(targetPage);
       setPageContent({
-        content: pageData.content || pageData, // Handle both old and new format
+        content: pageData.content || pageData,
         combinedCSS: pageData.combinedCSS || chapterData?.combinedCSS,
         chapterTitle: pageData.chapterTitle || chapterData?.title || 'Chapter 1'
       });
