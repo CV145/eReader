@@ -1,0 +1,2 @@
+- Always add lots of comments using JSDoc to document the code
+- When not coding, always write down your plans and strategies in a .txt file placed in the Plans folder

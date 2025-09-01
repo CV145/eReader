@@ -22,7 +22,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useEPUB } from '../../../../shared/hooks/useEPUB';
 import { usePagination } from '../../../../shared/hooks/usePagination';
 import Sidebar from '../Sidebar/Sidebar';
-import ChapterView from '../ChapterView/ChapterView';
+import PageView from '../PageView/PageView';
 import ReadingControls from '../Controls/ReadingControls';
 import SettingsSidebar from '../SettingsSidebar/SettingsSidebar';
 import './Reader.css';
@@ -225,13 +225,11 @@ const Reader = ({bookData, onProgressUpdate}) => {
           sidebarOpen={sidebarOpen}                     // Left sidebar state
         />
         
-        {/* Page content display */}
-        <ChapterView
-          content={pageContent}                         // Current page HTML content
-          loading={epubLoading || calculating}          // Loading state from useEPUB or pagination
+        {/* Page content display - NO SCROLLING */}
+        <PageView
+          pageContent={pageContent}                     // Current page HTML content
+          calculating={epubLoading || calculating}     // Loading state from useEPUB or pagination
           error={error}                                // Error messages
-          fontSize={fontSize}                          // Applied font size
-          cssEnabled={cssEnabled}                      // Whether to apply EPUB CSS
         />
       </div>
       

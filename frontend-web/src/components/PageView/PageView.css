@@ -1,0 +1,154 @@
+/**
+ * PageView Component Styles - Minimal & Pure
+ * 
+ * CRITICAL DESIGN PRINCIPLE: NO SCROLLING ALLOWED
+ * This component has ONE job: display content without scrolling
+ */
+
+/* Main page container */
+.page-view {
+  height: 100%;
+  background: var(--bg-primary, #ffffff);
+  /* NO overflow property - let content container handle it */
+}
+
+/* 
+  CRITICAL: Page Content Container
+  This is where the no-scrolling magic happens
+*/
+.page-content-container {
+  /* Height is set via inline styles from component */
+  overflow: hidden;                         /* NEVER ALLOW SCROLLING */
+  position: relative;                       /* For content positioning */
+  padding: 20px;                            /* Content breathing room */
+  box-sizing: border-box;                   /* Include padding in height */
+}
+
+/* Special states for content container */
+.page-content-container.calculating,
+.page-content-container.error,
+.page-content-container.empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+/* Page content styling */
+.page-content {
+  line-height: 1.6;
+  color: var(--text-color, #333333);
+  
+  /* Prevent content from breaking page boundaries */
+  max-width: 100%;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  hyphens: auto;
+}
+
+/* Ensure images never break page boundaries */
+.page-content img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 10px 0;
+}
+
+/* Ensure tables fit within page width */
+.page-content table {
+  max-width: 100%;
+  table-layout: fixed;
+  word-wrap: break-word;
+}
+
+/* Prevent code blocks from causing overflow */
+.page-content pre,
+.page-content code {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  max-width: 100%;
+  overflow: hidden;
+}
+
+/* State-specific content styling */
+.calculating-message,
+.error-message,
+.empty-message {
+  padding: 40px 20px;
+  max-width: 400px;
+}
+
+.calculating-message .spinner {
+  font-size: 32px;
+  color: var(--accent-color, #007bff);
+  animation: spin 1s linear infinite;
+  margin-bottom: 16px;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.calculating-message p,
+.error-message p,
+.empty-message p {
+  margin: 8px 0;
+  color: var(--text-muted, #6c757d);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.error-message p:first-child {
+  color: var(--error-color, #dc3545);
+  font-weight: 500;
+}
+
+/* Dark theme support */
+.theme-dark .page-view {
+  --bg-primary: #1a1a1a;
+  --text-color: #e2e8f0;
+  --text-muted: #a0aec0;
+  --accent-color: #63b3ed;
+  --error-color: #fc8181;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .page-content-container {
+    padding: 16px;
+  }
+  
+  .calculating-message,
+  .error-message,
+  .empty-message {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 480px) {
+  .page-content-container {
+    padding: 12px;
+  }
+  
+  .calculating-message .spinner {
+    font-size: 24px;
+  }
+}
+
+/* Reduced motion support */
+@media (prefers-reduced-motion: reduce) {
+  .calculating-message .spinner {
+    animation: none;
+  }
+}
+
+/*
+  PERFORMANCE NOTES:
+  
+  - Fixed height prevents layout thrashing
+  - overflow: hidden prevents scrolling and improves rendering
+  - Minimal CSS reduces parsing time
+  - No animations except loading spinner
+  - Box-sizing: border-box ensures accurate height calculations
+*/
